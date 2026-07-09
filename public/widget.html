@@ -1,0 +1,40 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Song voting</title>
+  <link rel="stylesheet" href="./widget.css?v=4">
+</head>
+<body>
+  <main class="azsv-widget" data-theme="dark" aria-live="polite">
+    <section class="azsv-head">
+      <div>
+        <div class="azsv-label" data-i18n="label">Song rating</div>
+        <h1 data-i18n="title">Vote this track</h1>
+      </div>
+      <div class="azsv-score-pill"><span data-i18n="score">Score</span> <strong data-score>0</strong></div>
+    </section>
+
+    <section class="azsv-actions" aria-label="Vote buttons" data-i18n-aria-label="voteButtons">
+      <button type="button" data-vote="1" title="Like" aria-label="Like" data-i18n-title="like" data-i18n-aria-label="like">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3v11Zm2 0V10l5.6-7.3c.7-.9 2.1-.8 2.6.3.2.4.2.9.1 1.3L16.5 9H20a2 2 0 0 1 2 2.3l-1.2 8A2 2 0 0 1 18.8 21H9Z"/></svg>
+      </button>
+      <button type="button" data-vote="-1" title="Dislike" aria-label="Dislike" data-i18n-title="dislike" data-i18n-aria-label="dislike">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3V3Zm2 0v11l5.6 7.3c.7.9 2.1.8 2.6-.3.2-.4.2-.9.1-1.3L16.5 15H20a2 2 0 0 0 2-2.3l-1.2-8A2 2 0 0 0 18.8 3H9Z"/></svg>
+      </button>
+    </section>
+
+    <section class="azsv-stats">
+      <span><strong data-upvotes>0</strong> <span data-i18n="likes">Likes</span></span>
+      <span data-downvote-stat><strong data-downvotes>0</strong> <span data-i18n="dislikes">Dislikes</span></span>
+    </section>
+    <p class="azsv-message" data-message></p>
+  </main>
+  <script src="./widget.js?v=4" defer></script>
+</body>
+</html>
+
+
+
+

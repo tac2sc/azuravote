@@ -1,0 +1,11 @@
+services:
+  azuravote:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    cpus: ${AZURAVOTE_CPU_LIMIT:-0.5}
+    mem_limit: ${AZURAVOTE_MEMORY_LIMIT:-256m}
+    volumes:
+      - ./data:/data
+    ports:
+      - "172.17.0.1:3099:3099"
