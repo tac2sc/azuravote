@@ -563,10 +563,17 @@
   }
 
 
+  function isStationPublicPath() {
+    return /^\/public\/[^/]+\/?$/.test(window.location.pathname);
+  }
+
   function isAzuraCastPublicPage() {
+    return /^\/public\//.test(window.location.pathname);
+  }
+
+  function isStationPlayerPage() {
     return document.body.classList.contains("page-station-public-player")
-      || document.getElementById("public-radio-player")
-      || /^\/public\//.test(window.location.pathname);
+      || !!document.getElementById("public-radio-player");
   }
 
   function removeVoteUi() {
@@ -590,11 +597,16 @@
   }
 
   function boot() {
-    if (document.body.classList.contains("page-station-public-player")) {
+    if (isStationPlayerPage()) {
       if (installNativeOverlay()) {
         loadConfig().then(loadNowPlaying);
         return;
       }
+      setTimeout(boot, 250);
+      return;
+    }
+
+    if (isStationPublicPath()) {
       setTimeout(boot, 250);
       return;
     }
@@ -626,7 +638,7 @@
 
   window.addEventListener("load", boot);
   window.setInterval(function () {
-    if (document.body.classList.contains("page-station-public-player")) {
+    if (isStationPlayerPage()) {
       installNativeOverlay();
       loadNowPlaying();
     }
