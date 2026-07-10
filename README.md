@@ -15,6 +15,9 @@ It does not modify AzuraCast core files.
 - Stores votes locally in `./data/votes.sqlite`.
 - Can optionally add highly rated tracks to a high-rotation playlist and low-rated tracks to a low-rotation/excluded playlist.
 
+<img width="631" height="293" alt="{D440FF40-0CD2-4580-97FC-668FE9667BB3}" src="https://github.com/user-attachments/assets/e97bb1de-6199-4bf5-991d-62452331e495" />
+
+
 ## Requirements
 
 - A working AzuraCast station.
