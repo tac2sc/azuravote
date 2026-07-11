@@ -1,0 +1,8 @@
+services:
+  web:
+    volumes:
+#      - /var/azuracast/ssl/cert.pem:/etc/ssl/certs/azuracast.crt:ro
+#      - /var/azuracast/ssl/key.pem:/etc/ssl/private/azuracast.key:ro
+#      - ./nginx_logs:/var/log/nginx
+
+      - ./nginx-custom.conf:/etc/nginx/azuracast.conf.d/custom.conf
