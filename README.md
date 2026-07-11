@@ -145,6 +145,12 @@ Apply changes:
 docker compose run --rm azuravote npm run sync:rotation:apply
 ```
 
+## Important Notes
+
+I've added some code to hide widget when user selects secondary stream. Will be configurable soon.
+
+<img width="1792" height="675" alt="{8744D799-AD73-4D2A-BFA4-C14C912C3A76}" src="https://github.com/user-attachments/assets/b55ec930-d13e-446c-b664-8efb8b8ec24e" style="width: 50%;"/>
+
 ## API
 
 Behind the `/votes/` proxy:
