@@ -61,7 +61,7 @@ function createApp({ cfg = config, store, azuracastClient } = {}) {
     res.json({ ok: true, service: "azuravote" });
   });
 
-  app.get([].concat(withPublicPrefix("/widget", cfg), withPublicPrefix("/widget/", cfg), withPublicPrefix("/widget.html", cfg)), (req, res) => {
+  app.get([].concat(withPublicPrefix("/widget", cfg), withPublicPrefix("/widget/", cfg), withPublicPrefix("/widget.html", cfg)), voteLimiter(cfg), (req, res) => {
     res.sendFile(path.join(__dirname, "public", "widget.html"));
   });
 
