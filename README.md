@@ -30,20 +30,19 @@ It does not modify AzuraCast core files.
 From the project folder:
 
 ```sh
+git clone https://github.com/tac2sc/azuravote
+cd ./azuravote
+
 cp .env.example .env
+nano ./env
+
 docker compose up -d --build
+
+cp ./azuracast/* /var/azuracast 
+cd /var/azuracast
 ```
 
-Edit `.env` before production use:
-
-```env
-AZURACAST_BASE_URL=http://10.0.0.2
-AZURACAST_STATION_ID=1
-AZURACAST_STATION_SHORT_NAME=progressiveua
-PUBLIC_BASE_URL=http://10.0.0.2/votes
-CORS_ALLOWED_ORIGINS=http://10.0.0.2,https://10.0.0.2
-VOTER_HASH_SECRET=replace-with-a-long-random-secret
-```
+Now review your AzuraCast docker configuration, and docker compose up -d --build
 
 Notes:
 
@@ -52,11 +51,7 @@ Notes:
 - Set either `AZURACAST_STATION_ID`, `AZURACAST_STATION_SHORT_NAME`, or both.
 - Do not expose port `3099` directly to the public internet.
 
-## AzuraCast Proxy
-
-Serve AzuraVote through AzuraCast nginx at `/votes/`.
-
-Example nginx rule:
+## AzuraCast custom nginx config
 
 ```nginx
 location ^~ /votes/ {
@@ -68,12 +63,12 @@ location ^~ /votes/ {
 }
 ```
 
-The default Docker setup binds the app to `172.17.0.1:3099` so the AzuraCast container can reach it while keeping it off the public internet.
+The default azuravote setup binds the app to `172.17.0.1:3099` so the AzuraCast container can reach it while keeping it off the public internet.
 
 Verify:
 
 ```sh
-curl -i http://10.0.0.2/votes/health
+curl -i http://yourhost.radio/votes/health
 ```
 
 ## Widget Install

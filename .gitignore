@@ -3,3 +3,5 @@ data/
 .env
 npm-debug.log*
 coverage/
+custom.conf
+
