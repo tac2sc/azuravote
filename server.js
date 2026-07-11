@@ -65,7 +65,7 @@ function createApp({ cfg = config, store, azuracastClient } = {}) {
     res.sendFile(path.join(__dirname, "public", "widget.html"));
   });
 
-  app.get(withPublicPrefix("/embed.js", cfg), (req, res) => {
+  app.get(withPublicPrefix("/embed.js", cfg), voteLimiter, (req, res) => {
     res.sendFile(path.join(__dirname, "public", "embed.js"));
   });
 
