@@ -71,3 +71,16 @@ test("vote endpoint stores the forwarded client IP without exposing it", async (
   assert.equal(JSON.stringify(body).includes("voter_ip"), false);
   assert.equal(store.db.prepare("select voter_ip from votes").get().voter_ip, "203.0.113.10");
 });
+
+
+test("embed script route initializes its rate limiter before serving requests", async (t) => {
+  const app = createApp({ cfg: testConfig(), store: tempStore(), azuracastClient: {} });
+  const server = app.listen(0);
+  t.after(() => server.close());
+  await new Promise((resolve) => server.once("listening", resolve));
+
+  const { port } = server.address();
+  const response = await fetch("http://127.0.0.1:" + port + "/embed.js");
+
+  assert.equal(response.status, 200);
+});
