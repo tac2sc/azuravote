@@ -3,7 +3,7 @@ const express = require("express");
 const { config, validateConfig } = require("./config");
 const { openDatabase, createStore } = require("./db");
 const { AzuraCastClient } = require("./azuracast");
-const { createVotingService, getVoterHash, sanitizeSong } = require("./votes");
+const { createVotingService, getClientIp, getVoterHash, sanitizeSong } = require("./votes");
 const { applySecurity, jsonParser, voteLimiter, requireJson, safeError } = require("./security");
 
 function publicSong(row) {
@@ -61,11 +61,11 @@ function createApp({ cfg = config, store, azuracastClient } = {}) {
     res.json({ ok: true, service: "azuravote" });
   });
 
-  app.get([].concat(withPublicPrefix("/widget", cfg), withPublicPrefix("/widget/", cfg), withPublicPrefix("/widget.html", cfg)), (req, res) => {
+  app.get([].concat(withPublicPrefix("/widget", cfg), withPublicPrefix("/widget/", cfg), withPublicPrefix("/widget.html", cfg)), voteLimiter(cfg), (req, res) => {
     res.sendFile(path.join(__dirname, "public", "widget.html"));
   });
 
-  app.get(withPublicPrefix("/embed.js", cfg), (req, res) => {
+  app.get(withPublicPrefix("/embed.js", cfg), voteLimiter(cfg), (req, res) => {
     res.sendFile(path.join(__dirname, "public", "embed.js"));
   });
 
@@ -96,7 +96,8 @@ function createApp({ cfg = config, store, azuracastClient } = {}) {
       const voteValue = Number(req.body?.vote);
       const songKey = typeof req.body?.song_key === "string" && req.body.song_key.trim() ? req.body.song_key.trim() : "";
       const voterHash = getVoterHash(req, cfg.voterHashSecret);
-      const result = await voting.submitVote({ songKey, voteValue, voterHash });
+      const voterIp = getClientIp(req);
+      const result = await voting.submitVote({ songKey, voteValue, voterHash, voterIp });
       res.json({ ok: true, stream_active: result.streamActive !== false, song: publicSong(result.song), votes: result.votes });
     } catch (error) {
       console.error("vote failed:", error.message);

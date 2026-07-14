@@ -9,3 +9,6 @@ services:
       - ./data:/data
     ports:
       - "172.17.0.1:3099:3099"
+#    environment:
+#      - DEBUG=* # Or DEBUG=azuravote:* to limit output
+

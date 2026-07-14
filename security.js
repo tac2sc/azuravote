@@ -6,7 +6,6 @@ const ipKeyGenerator = rateLimitModule.ipKeyGenerator || ((ip) => ip);
 
 function applySecurity(app, config) {
   app.use(helmet({
-    contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
   }));
 

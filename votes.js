@@ -1,6 +1,14 @@
 const crypto = require("crypto");
 
 function getClientIp(req) {
+  const forwardedFor = req.headers?.["x-forwarded-for"];
+  const forwardedIp = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor;
+  const firstForwardedIp = String(forwardedIp || "").split(",")[0].trim();
+  if (firstForwardedIp) return firstForwardedIp;
+
+  const realIp = req.headers?.["x-real-ip"];
+  if (typeof realIp === "string" && realIp.trim()) return realIp.trim();
+
   return req.ip || req.socket?.remoteAddress || "";
 }
 
@@ -34,7 +42,7 @@ function createVotingService(store, azuracastClient) {
     return { ok: true, streamActive: true, song: row, normalized: result.song };
   }
 
-  async function submitVote({ songKey, voteValue, voterHash }) {
+  async function submitVote({ songKey, voteValue, voterHash, voterIp }) {
     if (![1, -1].includes(voteValue)) {
       const error = new Error("Vote must be 1 or -1");
       error.status = 400;
@@ -63,11 +71,11 @@ function createVotingService(store, azuracastClient) {
       song = current.song;
     }
 
-    store.voteOnSong(song.id, voterHash, voteValue);
+    store.voteOnSong(song.id, voterHash, voteValue, voterIp);
     return { song, votes: store.getVoteTotals(song.id, voterHash), streamActive: true };
   }
 
   return { currentSong, submitVote };
 }
 
-module.exports = { createVotingService, getVoterHash, sanitizeSong };
+module.exports = { createVotingService, getClientIp, getVoterHash, sanitizeSong };

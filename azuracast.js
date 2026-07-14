@@ -4,6 +4,22 @@ function cleanPart(value) {
   return String(value || "").trim().replace(/^\/+|\/+$/g, "");
 }
 
+function sanitizeUpstreamUrl(baseUrl, path) {
+  try {
+    const url = new URL(String(baseUrl || ""));
+    url.username = "";
+    url.password = "";
+    url.search = "";
+    url.hash = "";
+    const basePath = url.pathname.replace(/\/+$/g, "");
+    const endpointPath = String(path || "").replace(/^\/+/, "");
+    url.pathname = basePath + "/" + endpointPath;
+    return url.toString();
+  } catch (error) {
+    return path;
+  }
+}
+
 function normalizeText(value) {
   const text = String(value || "").trim().replace(/\s+/g, " ");
   if (!text || ["unknown", "n/a", "na", "-", "null", "undefined"].includes(text.toLowerCase())) {
@@ -112,9 +128,10 @@ function normalizeSong(raw) {
 }
 
 class AzuraCastClient {
-  constructor(config, fetchImpl = global.fetch) {
+  constructor(config, fetchImpl = global.fetch, logger = console) {
     this.config = config;
     this.fetch = fetchImpl;
+    this.logger = logger;
   }
 
   endpointCandidates() {
@@ -173,9 +190,20 @@ class AzuraCastClient {
 
         return { ok: true, song: normalizeSong(selected), streamActive: true, source: path };
       } catch (error) {
-        errors.push({ path, message: error.name === "AbortError" ? "Request timed out" : error.message });
+        const timedOut = error.name === "AbortError";
+        errors.push({
+          path,
+          url: sanitizeUpstreamUrl(this.config.baseUrl, path),
+          status: Number.isInteger(error.status) ? error.status : null,
+          type: timedOut ? "timeout" : Number.isInteger(error.status) ? "http_error" : "request_error",
+          message: timedOut ? "Request timed out" : Number.isInteger(error.status) ? "AzuraCast returned HTTP " + error.status : "AzuraCast request failed",
+        });
       }
     }
+    this.logger.error("AzuraCast now-playing lookup failed", {
+      timeout_ms: this.config.timeoutMs || 5000,
+      attempts: errors,
+    });
     return { ok: false, error: "Unable to load current song", details: errors };
   }
 }
