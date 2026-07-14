@@ -47,6 +47,9 @@ function migrate(db) {
       foreign key (song_id) references songs(id) on delete cascade
     );
   `);
+
+  const voterIpColumn = db.prepare("select 1 from pragma_table_info('votes') where name = 'voter_ip'").get();
+  if (!voterIpColumn) db.exec("alter table votes add column voter_ip text");
 }
 
 function createStore(db) {
@@ -73,11 +76,11 @@ function createStore(db) {
   `);
   const myVoteStmt = db.prepare("select vote_value from votes where song_id = ? and voter_hash = ?");
   const insertVoteStmt = db.prepare(`
-    insert or ignore into votes (song_id, voter_hash, vote_value, created_at, updated_at)
-    values (?, ?, ?, ?, ?)
+    insert or ignore into votes (song_id, voter_hash, voter_ip, vote_value, created_at, updated_at)
+    values (?, ?, ?, ?, ?, ?)
   `);
   const updateVoteStmt = db.prepare(`
-    update votes set vote_value = ?, updated_at = ?
+    update votes set vote_value = ?, voter_ip = ?, updated_at = ?
     where song_id = ? and voter_hash = ?
   `);
 
@@ -109,11 +112,11 @@ function createStore(db) {
     return getByKeyStmt.get(songKey);
   }
 
-  function voteOnSong(songId, voterHash, voteValue) {
+  function voteOnSong(songId, voterHash, voteValue, voterIp = null) {
     if (![1, -1].includes(voteValue)) throw new Error("Invalid vote value");
     const now = new Date().toISOString();
-    insertVoteStmt.run(songId, voterHash, voteValue, now, now);
-    updateVoteStmt.run(voteValue, now, songId, voterHash);
+    insertVoteStmt.run(songId, voterHash, voterIp, voteValue, now, now);
+    updateVoteStmt.run(voteValue, voterIp, now, songId, voterHash);
   }
 
   function getVoteTotals(songId, voterHash = "") {
