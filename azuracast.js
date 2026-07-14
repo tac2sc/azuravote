@@ -6,15 +6,23 @@ function cleanPart(value) {
 
 function sanitizeUpstreamUrl(baseUrl, path) {
   try {
-    const url = new URL(String(baseUrl || "") + path);
+    const url = new URL(String(baseUrl || ""));
     url.username = "";
     url.password = "";
     url.search = "";
     url.hash = "";
+    const basePath = url.pathname.replace(/\/+$/g, "");
+    const endpointPath = String(path || "").replace(/^\/+/, "");
+    url.pathname = basePath + "/" + endpointPath;
     return url.toString();
   } catch (error) {
     return path;
   }
+}
+
+function sanitizeErrorCode(error) {
+  const code = error?.cause?.code || error?.code;
+  return typeof code === "string" && /^[A-Z0-9_]{1,64}$/.test(code) ? code : null;
 }
 
 function normalizeText(value) {
@@ -193,7 +201,8 @@ class AzuraCastClient {
           url: sanitizeUpstreamUrl(this.config.baseUrl, path),
           status: Number.isInteger(error.status) ? error.status : null,
           type: timedOut ? "timeout" : Number.isInteger(error.status) ? "http_error" : "request_error",
-          message: timedOut ? "Request timed out" : error.message,
+          code: sanitizeErrorCode(error),
+          message: timedOut ? "Request timed out" : Number.isInteger(error.status) ? "AzuraCast returned HTTP " + error.status : "AzuraCast request failed",
         });
       }
     }

@@ -10,7 +10,7 @@ test("now-playing failure logs sanitized upstream diagnostics", async () => {
     },
   };
   const config = {
-    baseUrl: "https://user:password@azuracast.test",
+    baseUrl: "https://user:password@azuracast.test/base?token=secret-query",
     stationId: "1",
     stationShortName: "station",
     apiKey: "secret-api-key",
@@ -30,9 +30,10 @@ test("now-playing failure logs sanitized upstream diagnostics", async () => {
   assert.equal(records[0].details.timeout_ms, 1234);
   assert.equal(records[0].details.attempts[0].status, 503);
   assert.equal(records[0].details.attempts[0].type, "http_error");
-  assert.equal(records[0].details.attempts[0].url, "https://azuracast.test/api/nowplaying");
+  assert.equal(records[0].details.attempts[0].url, "https://azuracast.test/base/api/nowplaying");
   assert.equal(JSON.stringify(records[0]).includes("secret-api-key"), false);
   assert.equal(JSON.stringify(records[0]).includes("password"), false);
+  assert.equal(JSON.stringify(records[0]).includes("secret-query"), false);
 });
 
 
@@ -57,4 +58,28 @@ test("successful now-playing lookup does not log an error", async () => {
 
   assert.equal(result.ok, true);
   assert.deepEqual(records, []);
+});
+
+
+test("network failure logs do not expose credentials from error messages", async () => {
+  const records = [];
+  const logger = { error(message, details) { records.push({ message, details }); } };
+  const client = new AzuraCastClient({
+    baseUrl: "https://user:password.test",
+    stationId: "1",
+    stationShortName: "",
+    apiKey: "secret-api-key",
+    timeoutMs: 1234,
+  }, async () => {
+    const error = new Error("Authorization: Bearer secret-api-key via https://user:password.test");
+    error.cause = { code: "ECONNREFUSED" };
+    throw error;
+  }, logger);
+
+  await client.getNowPlaying();
+
+  const logged = JSON.stringify(records);
+  assert.equal(logged.includes("secret-api-key"), false);
+  assert.equal(logged.includes("password"), false);
+  assert.equal(records[0].details.attempts[0].code, "ECONNREFUSED");
 });
