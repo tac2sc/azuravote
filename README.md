@@ -94,7 +94,7 @@ docker compose exec azuravote node -e 'const Database=require("better-sqlite3");
 ```
 To see individual raw votes:
 ```
-docker compose exec azuravote node -e 'const Database=require("better-sqlite3"); const db=new Database(process.env.DATABASE_PATH||process.env.DB_PATH||"/data/azuravote.sqlite",{readonly:true}); console.table(db.prepare(`select v.id, s.artist, s.title, v.vote_value, v.created_at, v.updated_at from votes v join songs s on s.id=v.song_id order by v.updated_at desc`).all())'
+docker compose exec azuravote node -e 'const Database=require("better-sqlite3"); const db=new Database(process.env.DATABASE_PATH||process.env.DB_PATH||"/data/azuravote.sqlite",{readonly:true}); console.table(db.prepare(`select v.id, s.artist, s.title, v.vote_value, v.created_at, v.updated_at, v.voter_ip from votes v join songs s on s.id=v.song_id order by v.updated_at desc`).all())'
 ```
 To clear everything, votes and songs:
 ```
