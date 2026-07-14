@@ -72,7 +72,7 @@ test("network failure logs do not expose credentials from error messages", async
     timeoutMs: 1234,
   }, async () => {
     const error = new Error("Authorization: Bearer secret-api-key via https://user:password.test");
-    error.cause = { code: "ECONNREFUSED" };
+    error.cause = { code: "SECRET_API_KEY" };
     throw error;
   }, logger);
 
@@ -81,5 +81,5 @@ test("network failure logs do not expose credentials from error messages", async
   const logged = JSON.stringify(records);
   assert.equal(logged.includes("secret-api-key"), false);
   assert.equal(logged.includes("password"), false);
-  assert.equal(records[0].details.attempts[0].code, "ECONNREFUSED");
+  assert.equal(logged.includes("SECRET_API_KEY"), false);
 });
