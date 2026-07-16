@@ -4,7 +4,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY package*.json ./
-RUN npm install --include=dev
+RUN npm ci --include=dev
 
 COPY . .
 RUN mkdir -p /data && chown -R node:node /app /data

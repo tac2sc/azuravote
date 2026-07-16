@@ -8,6 +8,10 @@ const { applySecurity, jsonParser, voteLimiter, chatLimiter, requireJson, safeEr
 
 const CHAT_MESSAGE_MAX_LENGTH = 200;
 
+function chatNickname(voterHash) {
+  return String(voterHash).slice(0, 6);
+}
+
 function publicSong(row) {
   const song = sanitizeSong(row);
   if (!song) return null;
@@ -25,7 +29,7 @@ function publicSong(row) {
 function publicChatMessage(row) {
   return {
     id: Number(row.id),
-    nickname: String(row.voter_hash).slice(0, 6),
+    nickname: chatNickname(row.voter_hash),
     body: row.body,
     created_at: row.created_at,
   };
@@ -38,7 +42,7 @@ function parseLimit(value, fallback, max) {
 }
 
 function parseChatQueryInteger(value, { name, fallback, min, max }) {
-  if (value === undefined || value === "") return fallback;
+  if (value === undefined) return fallback;
   if (!/^\d+$/.test(String(value))) {
     const error = new Error(`${name} must be an integer from ${min} to ${max}`);
     error.status = 400;
@@ -146,7 +150,7 @@ function createApp({ cfg = config, store, azuracastClient } = {}) {
       const messages = database.listChatMessages({ after, limit }).map(publicChatMessage);
       res.json({
         ok: true,
-        nickname: voterHash.slice(0, 6),
+        nickname: chatNickname(voterHash),
         messages,
         latest_id: messages.length ? messages[messages.length - 1].id : after,
       });
@@ -155,7 +159,7 @@ function createApp({ cfg = config, store, azuracastClient } = {}) {
     }
   });
 
-  app.post(withPublicPrefix("/api/chat/messages", cfg), chatLimiter(cfg), requireJson, (req, res) => {
+  app.post(withPublicPrefix("/api/chat/messages", cfg), chatLimiter(cfg, getClientIp), requireJson, (req, res) => {
     try {
       const body = typeof req.body?.message === "string" ? req.body.message.trim() : "";
       if (!body || Array.from(body).length > CHAT_MESSAGE_MAX_LENGTH) {

@@ -47,7 +47,7 @@ function voteLimiter(config) {
   });
 }
 
-function chatLimiter(config) {
+function chatLimiter(config, resolveClientIp = (req) => req.ip || req.socket?.remoteAddress || "unknown") {
   return rateLimit({
     windowMs: config.chatRateLimitWindowMs,
     limit: config.chatRateLimitMaxMessages,
@@ -55,7 +55,7 @@ function chatLimiter(config) {
     legacyHeaders: false,
     skipFailedRequests: true,
     keyGenerator(req) {
-      return ipKeyGenerator(req.ip || req.socket?.remoteAddress || "unknown");
+      return ipKeyGenerator(resolveClientIp(req) || "unknown");
     },
     message: { ok: false, error: "Too many chat messages. Please wait a moment." },
   });

@@ -13,6 +13,7 @@
     "azsv-song-vote-widget",
     "azsv-player-adapter-style",
   ];
+  var PLAYER_UI_SELECTOR = "#azsv-player-controls,#azsv-song-vote-overlay,#azsv-ratings-panel,#azsv-chat-panel";
 
   function createPublicPlayerAdapter(options) {
     options = options || {};
@@ -53,7 +54,7 @@
       candidates.push(root);
       var best = null;
       candidates.forEach(function (element) {
-        if (element.closest("#azsv-player-controls,#azsv-song-vote-overlay,#azsv-ratings-panel,#azsv-chat-panel")) return;
+        if (element.closest(PLAYER_UI_SELECTOR)) return;
         var rect = visibleRect(element);
         if (!rect || rect.width < 260 || rect.width > 820 || rect.height < 130 || rect.height > 620) return;
         var score = rect.width * rect.height;
@@ -79,7 +80,7 @@
       var current = "";
       var buttons = panel.querySelectorAll("button,a");
       for (var buttonIndex = 0; buttonIndex < buttons.length; buttonIndex += 1) {
-        if (buttons[buttonIndex].closest("#azsv-player-controls,#azsv-song-vote-overlay,#azsv-ratings-panel,#azsv-chat-panel")) continue;
+        if (buttons[buttonIndex].closest(PLAYER_UI_SELECTOR)) continue;
         var buttonLabel = cleanStreamLabel(buttons[buttonIndex].textContent);
         if (looksLikeStreamChoice(buttonLabel)) {
           current = buttonLabel;
@@ -250,15 +251,15 @@
     function refresh() {
       var current = snapshot();
       if (current.pageKind === "station-player" && current.playerPresent) ensurePlayerUi(findPlayerPanel());
-      else if (current.pageKind === "other-public") removeInjectedUi();
       else if (current.pageKind === "other") ensureFallbackWidget();
+      else removeInjectedUi();
       emitSnapshot();
       if (mutationObserver) mutationObserver.takeRecords();
     }
 
     function install(nextActions) {
-      actions = nextActions || actions;
       if (!installed) {
+        actions = nextActions || {};
         installed = true;
         doc.addEventListener("change", boundRefresh);
         doc.addEventListener("click", boundRefresh);

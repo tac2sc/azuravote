@@ -140,10 +140,13 @@ test("chat history supports an incremental cursor and bounded limit", async (t) 
 
   const response = await fetch(`${baseUrl}/api/chat/messages?after=1&limit=1`);
   const body = await response.json();
+  const latestResponse = await fetch(`${baseUrl}/api/chat/messages?limit=2`);
+  const latest = await latestResponse.json();
 
   assert.equal(response.status, 200);
   assert.deepEqual(body.messages.map((message) => message.body), ["two"]);
   assert.equal(body.latest_id, 2);
+  assert.deepEqual(latest.messages.map((message) => message.body), ["two", "three"]);
 });
 
 test("chat rejects invalid messages and accepts exactly 200 characters", async (t) => {
@@ -173,16 +176,30 @@ test("chat rejects invalid messages and accepts exactly 200 characters", async (
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ message: 42 }),
   });
+  const wrongContentType = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "text/plain" },
+    body: "message=hello",
+  });
 
   assert.equal(accepted.status, 201);
   assert.equal(tooLong.status, 400);
   assert.equal(empty.status, 400);
   assert.equal(wrongType.status, 400);
+  assert.equal(wrongContentType.status, 415);
 });
 
 test("chat stores server-derived identity without exposing internal fields", async (t) => {
   const store = tempStore();
-  const app = createApp({ cfg: testConfig(), store, azuracastClient: {} });
+  const app = createApp({
+    cfg: testConfig(),
+    store,
+    azuracastClient: {
+      async getNowPlaying() {
+        return { ok: true, streamActive: true, song: { azuracast_song_id: "song-identity", song_key: "az:song-identity", artist: "Artist", title: "Title", album: "", art_url: "" } };
+      },
+    },
+  });
   const server = app.listen(0);
   t.after(() => server.close());
   await new Promise((resolve) => server.once("listening", resolve));
@@ -193,7 +210,19 @@ test("chat stores server-derived identity without exposing internal fields", asy
     body: JSON.stringify({ message: "identity", nickname: "admin", voter_hash: "fake", voter_ip: "127.0.0.1" }),
   });
   const body = await response.json();
+  const otherResponse = await fetch(`http://127.0.0.1:${server.address().port}/api/chat/messages`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-forwarded-for": "203.0.113.26" },
+    body: JSON.stringify({ message: "other identity" }),
+  });
+  const otherBody = await otherResponse.json();
+  await fetch(`http://127.0.0.1:${server.address().port}/api/vote`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-forwarded-for": "203.0.113.25" },
+    body: JSON.stringify({ vote: 1 }),
+  });
   const row = store.db.prepare("select voter_hash, voter_ip from chat_messages").get();
+  const voteRow = store.db.prepare("select voter_hash from votes").get();
 
   assert.equal(body.message.nickname, "ce7845");
   assert.equal(JSON.stringify(body).includes("voter_hash"), false);
@@ -201,6 +230,8 @@ test("chat stores server-derived identity without exposing internal fields", asy
   assert.equal(row.voter_hash.length, 64);
   assert.equal(row.voter_hash.startsWith("ce7845"), true);
   assert.equal(row.voter_ip, "203.0.113.25");
+  assert.notEqual(otherBody.message.nickname, body.message.nickname);
+  assert.equal(voteRow.voter_hash, row.voter_hash);
 });
 
 test("chat validates history queries on public-prefixed routes", async (t) => {
@@ -213,32 +244,43 @@ test("chat validates history queries on public-prefixed routes", async (t) => {
   const baseUrl = `http://127.0.0.1:${server.address().port}`;
 
   const prefixed = await fetch(`${baseUrl}/votes/api/chat/messages`);
+  const prefixedPost = await fetch(`${baseUrl}/votes/api/chat/messages`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ message: "prefixed" }),
+  });
   const badAfter = await fetch(`${baseUrl}/votes/api/chat/messages?after=-1`);
   const badLimit = await fetch(`${baseUrl}/votes/api/chat/messages?limit=101`);
+  const emptyAfter = await fetch(`${baseUrl}/votes/api/chat/messages?after=`);
+  const emptyLimit = await fetch(`${baseUrl}/votes/api/chat/messages?limit=`);
 
   assert.equal(prefixed.status, 200);
+  assert.equal(prefixedPost.status, 201);
   assert.equal(badAfter.status, 400);
   assert.equal(badLimit.status, 400);
+  assert.equal(emptyAfter.status, 400);
+  assert.equal(emptyLimit.status, 400);
 });
 
 test("chat posting has a dedicated rate limit", async (t) => {
   const cfg = testConfig();
-  cfg.trustProxy = true;
   cfg.chatRateLimitMaxMessages = 1;
   const app = createApp({ cfg, store: tempStore(), azuracastClient: {} });
   const server = app.listen(0);
   t.after(() => server.close());
   await new Promise((resolve) => server.once("listening", resolve));
   const url = `http://127.0.0.1:${server.address().port}/api/chat/messages`;
-  const options = {
+  const postAs = (ip) => fetch(url, {
     method: "POST",
-    headers: { "content-type": "application/json", "x-forwarded-for": "198.51.100.30" },
+    headers: { "content-type": "application/json", "x-real-ip": ip },
     body: JSON.stringify({ message: "limited" }),
-  };
+  });
 
-  const first = await fetch(url, options);
-  const second = await fetch(url, options);
+  const first = await postAs("198.51.100.30");
+  const otherListener = await postAs("198.51.100.31");
+  const second = await postAs("198.51.100.30");
 
   assert.equal(first.status, 201);
+  assert.equal(otherListener.status, 201);
   assert.equal(second.status, 429);
 });

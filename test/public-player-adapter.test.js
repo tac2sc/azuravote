@@ -28,7 +28,8 @@ test("adapter installs one collapsed Chat control on the station player", () => 
   const adapter = createPublicPlayerAdapter({ window: dom.window, document: dom.window.document });
   const snapshots = [];
 
-  adapter.install({});
+  const toggles = [];
+  adapter.install({ onChatToggle(open) { toggles.push(open); } });
   adapter.observe((snapshot) => snapshots.push(snapshot));
   adapter.install({});
 
@@ -43,8 +44,33 @@ test("adapter installs one collapsed Chat control on the station player", () => 
     mainStreamSelected: true,
     layout: "desktop",
   });
+  chatControls[0].click();
+  assert.deepEqual(toggles, [true]);
 
   adapter.dispose();
+});
+
+test("adapter removes native UI when the station player disappears", async () => {
+  const dom = playerFixture();
+  const adapter = createPublicPlayerAdapter({ window: dom.window, document: dom.window.document });
+  adapter.install({});
+
+  dom.window.document.getElementById("public-radio-player").remove();
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(dom.window.document.getElementById("azsv-player-controls"), null);
+  assert.equal(dom.window.document.getElementById("azsv-chat-panel"), null);
+
+  dom.window.document.body.insertAdjacentHTML("beforeend", "<div id='public-radio-player'><section class='replacement-panel'><div class='radio-player-widget'></div></section></div>");
+  dom.window.document.querySelector(".replacement-panel").getBoundingClientRect = () => ({ left: 20, top: 20, right: 620, bottom: 250, width: 600, height: 230 });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(dom.window.document.querySelectorAll("#azsv-player-controls").length, 1);
+  assert.equal(dom.window.document.querySelectorAll("#azsv-chat-panel").length, 1);
+
+  adapter.dispose();
+  dom.window.document.querySelector(".replacement-panel").appendChild(dom.window.document.createElement("div"));
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(dom.window.document.getElementById("azsv-player-controls"), null);
 });
 
 test("adapter renders chat as plain text and forwards chat actions", () => {
@@ -130,6 +156,23 @@ test("adapter preserves the standalone voting fallback outside AzuraCast public 
   assert.equal(dom.window.document.getElementById("azsv-song-vote-widget"), null);
 });
 
+test("adapter classifies and positions a portrait mobile player", () => {
+  const dom = playerFixture();
+  Object.defineProperty(dom.window, "innerWidth", { configurable: true, value: 390 });
+  Object.defineProperty(dom.window, "innerHeight", { configurable: true, value: 844 });
+  dom.window.matchMedia = () => ({ matches: true });
+  const adapter = createPublicPlayerAdapter({ window: dom.window, document: dom.window.document });
+  let currentSnapshot;
+
+  adapter.install({});
+  adapter.observe((snapshot) => { currentSnapshot = snapshot; });
+
+  assert.equal(currentSnapshot.layout, "mobile");
+  assert.equal(dom.window.document.getElementById("azsv-song-vote-overlay").classList.contains("azsv-mobile"), true);
+  assert.equal(dom.window.document.getElementById("azsv-chat-panel").style.left, "14px");
+  adapter.dispose();
+});
+
 test("public embed loads chat on open, posts, and stops polling on close", async () => {
   const dom = playerFixture();
   const calls = [];
@@ -174,6 +217,11 @@ test("public embed loads chat on open, posts, and stops polling on close", async
   assert.equal(panel.querySelector("[data-chat-body]").textContent, "Welcome");
   assert.equal(Array.from(intervals.values()).some((entry) => entry.milliseconds === 5000), true);
 
+  const incrementalPoll = Array.from(intervals.values()).find((entry) => entry.milliseconds === 5000);
+  incrementalPoll.callback();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(calls.some((call) => call.url.endsWith("/chat/messages?after=1&limit=100")), true);
+
   panel.querySelector("[data-chat-input]").value = "Hello";
   panel.querySelector("form").dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true }));
   await new Promise((resolve) => setImmediate(resolve));
@@ -185,4 +233,8 @@ test("public embed loads chat on open, posts, and stops polling on close", async
   panel.querySelector("[data-chat-close]").click();
   assert.equal(cleared.includes(chatIntervalId), true);
   assert.equal(panel.hidden, true);
+
+  dom.window.dispatchEvent(new dom.window.Event("beforeunload"));
+  assert.equal(intervals.size, 0);
+  assert.equal(dom.window.document.getElementById("azsv-player-controls"), null);
 });
