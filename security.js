@@ -47,6 +47,20 @@ function voteLimiter(config) {
   });
 }
 
+function chatLimiter(config) {
+  return rateLimit({
+    windowMs: config.chatRateLimitWindowMs,
+    limit: config.chatRateLimitMaxMessages,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipFailedRequests: true,
+    keyGenerator(req) {
+      return ipKeyGenerator(req.ip || req.socket?.remoteAddress || "unknown");
+    },
+    message: { ok: false, error: "Too many chat messages. Please wait a moment." },
+  });
+}
+
 function requireJson(req, res, next) {
   if (!req.is("application/json")) {
     return res.status(415).json({ ok: false, error: "Content-Type must be application/json" });
@@ -62,4 +76,4 @@ function safeError(res, error, fallback = "Something went wrong") {
   });
 }
 
-module.exports = { applySecurity, jsonParser, voteLimiter, requireJson, safeError };
+module.exports = { applySecurity, jsonParser, voteLimiter, chatLimiter, requireJson, safeError };

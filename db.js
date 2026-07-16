@@ -46,6 +46,15 @@ function migrate(db) {
       last_error text,
       foreign key (song_id) references songs(id) on delete cascade
     );
+    create table if not exists chat_messages (
+      id integer primary key autoincrement,
+      voter_hash text not null,
+      voter_ip text,
+      body text not null check (length(body) between 1 and 200),
+      created_at text not null
+    );
+    create index if not exists chat_messages_voter_hash_idx on chat_messages(voter_hash);
+    create index if not exists chat_messages_created_at_idx on chat_messages(created_at);
   `);
 
   const voterIpColumn = db.prepare("select 1 from pragma_table_info('votes') where name = 'voter_ip'").get();
@@ -83,6 +92,11 @@ function createStore(db) {
     update votes set vote_value = ?, voter_ip = ?, updated_at = ?
     where song_id = ? and voter_hash = ?
   `);
+  const insertChatMessageStmt = db.prepare(`
+    insert into chat_messages (voter_hash, voter_ip, body, created_at)
+    values (?, ?, ?, ?)
+  `);
+  const getChatMessageStmt = db.prepare("select * from chat_messages where id = ?");
 
   function upsertSong(song) {
     const now = new Date().toISOString();
@@ -153,7 +167,24 @@ function createStore(db) {
     return listRanked(100000, "top");
   }
 
-  return { db, upsertSong, getSongByKey, voteOnSong, getVoteTotals, listRecent, listRanked, exportRows };
+  function createChatMessage(voterHash, voterIp, body) {
+    const createdAt = new Date().toISOString();
+    const result = insertChatMessageStmt.run(voterHash, voterIp || null, body, createdAt);
+    return getChatMessageStmt.get(result.lastInsertRowid);
+  }
+
+  function listChatMessages({ after = 0, limit = 50 } = {}) {
+    if (after > 0) {
+      return db.prepare("select * from chat_messages where id > ? order by id asc limit ?").all(after, limit);
+    }
+    return db.prepare(`
+      select * from (
+        select * from chat_messages order by id desc limit ?
+      ) order by id asc
+    `).all(limit);
+  }
+
+  return { db, upsertSong, getSongByKey, voteOnSong, getVoteTotals, listRecent, listRanked, exportRows, createChatMessage, listChatMessages };
 }
 
 function withScore(row) {

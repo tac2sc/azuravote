@@ -7,6 +7,7 @@ It does not modify AzuraCast core files.
 ## What It Does
 
 - Shows vote buttons inside the AzuraCast public player.
+- Adds an anonymous station chat, hidden until the listener clicks Chat.
 - Allows one vote per listener per song.
 - Lets a listener change their vote.
 - Shows a ratings list for tracks.
@@ -63,7 +64,7 @@ Paste this JavaScript:
 ```js
 (function () {
   var s = document.createElement("script");
-  s.src = "/votes/embed.js?v=1";
+  s.src = "/votes/embed.js?v=2";
   s.defer = true;
   document.head.appendChild(s);
 })();
@@ -144,9 +145,13 @@ Behind the `/votes/` proxy:
 - `GET /votes/health`
 - `GET /votes/api/now-playing`
 - `POST /votes/api/vote`
+- `GET /votes/api/chat/messages?after=0&limit=50`
+- `POST /votes/api/chat/messages` with JSON `{ "message": "Up to 200 characters" }`
 - `GET /votes/api/ratings`
 - `GET /votes/widget`
 - `GET /votes/embed.js`
+
+Chat nicknames are assigned by the server from the first six characters of the listener's voter hash. Full voter hashes and IP addresses remain internal. Chat posting defaults to five messages per minute per client IP; configure it with `CHAT_RATE_LIMIT_WINDOW_MS` and `CHAT_RATE_LIMIT_MAX_MESSAGES`.
 
 ## Troubleshooting
 - `404` on `/votes/health`: the nginx `/votes/` proxy is missing or not loaded.

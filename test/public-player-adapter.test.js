@@ -1,0 +1,188 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const { JSDOM } = require("jsdom");
+const { createPublicPlayerAdapter } = require("../public/player-adapter");
+
+function playerFixture() {
+  const dom = new JSDOM(`<!doctype html><html><head></head><body class="page-station-public-player">
+    <div id="public-radio-player">
+      <section class="player-panel">
+        <div class="now-playing-main"></div>
+        <select aria-label="Stream">
+          <option>Main / MP3</option>
+          <option>Backup / AAC</option>
+        </select>
+        <div class="radio-player-widget"></div>
+      </section>
+    </div>
+  </body></html>`, { url: "https://radio.example/public/station", runScripts: "outside-only" });
+  const panel = dom.window.document.querySelector(".player-panel");
+  panel.getBoundingClientRect = () => ({ left: 10, top: 10, right: 650, bottom: 260, width: 640, height: 250 });
+  return dom;
+}
+
+test("adapter installs one collapsed Chat control on the station player", () => {
+  const dom = playerFixture();
+  const adapter = createPublicPlayerAdapter({ window: dom.window, document: dom.window.document });
+  const snapshots = [];
+
+  adapter.install({});
+  adapter.observe((snapshot) => snapshots.push(snapshot));
+  adapter.install({});
+
+  const chatControls = dom.window.document.querySelectorAll("#azsv-chat-link");
+  const chatPanel = dom.window.document.getElementById("azsv-chat-panel");
+  assert.equal(chatControls.length, 1);
+  assert.equal(chatControls[0].getAttribute("aria-expanded"), "false");
+  assert.equal(chatPanel.hidden, true);
+  assert.deepEqual(snapshots.at(-1), {
+    pageKind: "station-player",
+    playerPresent: true,
+    mainStreamSelected: true,
+    layout: "desktop",
+  });
+
+  adapter.dispose();
+});
+
+test("adapter renders chat as plain text and forwards chat actions", () => {
+  const dom = playerFixture();
+  const events = [];
+  const adapter = createPublicPlayerAdapter({ window: dom.window, document: dom.window.document });
+  adapter.install({
+    onChatToggle(open) { events.push(["toggle", open]); },
+    onChatSubmit(message) { events.push(["submit", message]); },
+  });
+
+  adapter.render({
+    chat: {
+      visible: true,
+      open: true,
+      nickname: "a1b2c3",
+      messages: [{ id: 7, nickname: "d4e5f6", body: "<img src=x onerror=alert(1)>", created_at: "2026-07-17T10:00:00.000Z" }],
+      pending: false,
+      error: "",
+    },
+  });
+
+  const panel = dom.window.document.getElementById("azsv-chat-panel");
+  assert.equal(panel.hidden, false);
+  assert.equal(dom.window.document.getElementById("azsv-chat-link").getAttribute("aria-expanded"), "true");
+  assert.equal(panel.querySelector("[data-chat-nickname]").textContent, "a1b2c3");
+  assert.equal(panel.querySelector("[data-chat-body]").textContent, "<img src=x onerror=alert(1)>");
+  assert.equal(panel.querySelector("img"), null);
+
+  const input = panel.querySelector("[data-chat-input]");
+  input.value = "Hello back";
+  panel.querySelector("form").dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true }));
+  panel.querySelector("[data-chat-close]").click();
+  assert.deepEqual(events, [["submit", "Hello back"], ["toggle", false]]);
+
+  adapter.dispose();
+});
+
+test("adapter reports secondary-stream selection while keeping station chat available", () => {
+  const dom = playerFixture();
+  const adapter = createPublicPlayerAdapter({ window: dom.window, document: dom.window.document });
+  const snapshots = [];
+  adapter.install({});
+  adapter.observe((snapshot) => snapshots.push(snapshot));
+  adapter.render({
+    voting: { visible: true, upvotes: 4, downvotes: 1, myVote: 1 },
+    ratings: { visible: true, open: false },
+    chat: { visible: true, open: false, messages: [] },
+  });
+
+  const select = dom.window.document.querySelector("select");
+  select.selectedIndex = 1;
+  select.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+  adapter.render({
+    voting: { visible: false },
+    ratings: { visible: false, open: false },
+    chat: { visible: true, open: false, messages: [] },
+  });
+
+  assert.equal(snapshots.at(-1).mainStreamSelected, false);
+  assert.equal(dom.window.document.getElementById("azsv-song-vote-overlay").hidden, true);
+  assert.equal(dom.window.document.getElementById("azsv-ratings-link").hidden, true);
+  assert.equal(dom.window.document.getElementById("azsv-chat-link").hidden, false);
+
+  adapter.dispose();
+  assert.equal(dom.window.document.getElementById("azsv-player-controls"), null);
+  assert.equal(dom.window.document.getElementById("azsv-chat-panel"), null);
+});
+
+test("adapter preserves the standalone voting fallback outside AzuraCast public pages", () => {
+  const dom = new JSDOM("<!doctype html><html><head></head><body><main></main></body></html>", { url: "https://site.example/listen" });
+  const adapter = createPublicPlayerAdapter({
+    window: dom.window,
+    document: dom.window.document,
+    config: { widgetUrl: "https://radio.example/votes/widget" },
+  });
+
+  adapter.install({});
+
+  const widget = dom.window.document.getElementById("azsv-song-vote-widget");
+  assert.equal(widget.querySelector("iframe").src, "https://radio.example/votes/widget");
+  adapter.dispose();
+  assert.equal(dom.window.document.getElementById("azsv-song-vote-widget"), null);
+});
+
+test("public embed loads chat on open, posts, and stops polling on close", async () => {
+  const dom = playerFixture();
+  const calls = [];
+  const intervals = new Map();
+  const cleared = [];
+  let nextIntervalId = 0;
+  dom.window.AZSV_CONFIG = {
+    apiBase: "https://radio.example/votes/api/",
+    widgetUrl: "https://radio.example/votes/widget",
+  };
+  dom.window.AzuraVotePublicPlayerAdapter = { createPublicPlayerAdapter };
+  dom.window.setInterval = (callback, milliseconds) => {
+    const id = ++nextIntervalId;
+    intervals.set(id, { callback, milliseconds });
+    return id;
+  };
+  dom.window.clearInterval = (id) => {
+    cleared.push(id);
+    intervals.delete(id);
+  };
+  dom.window.fetch = async (url, options = {}) => {
+    calls.push({ url: String(url), options });
+    let body;
+    if (String(url).endsWith("/config")) body = { hidePublicDownvotes: false };
+    else if (String(url).endsWith("/now-playing")) body = { stream_active: true, song: { song_key: "song-1" }, votes: { upvotes: 2, downvotes: 0, my_vote: null } };
+    else if (String(url).includes("/chat/messages?") ) body = { ok: true, nickname: "a1b2c3", messages: [{ id: 1, nickname: "d4e5f6", body: "Welcome", created_at: "2026-07-17T10:00:00.000Z" }], latest_id: 1 };
+    else if (String(url).endsWith("/chat/messages") && options.method === "POST") body = { ok: true, message: { id: 2, nickname: "a1b2c3", body: "Hello", created_at: "2026-07-17T10:01:00.000Z" } };
+    else body = { songs: [] };
+    return { ok: true, status: options.method === "POST" ? 201 : 200, async json() { return body; } };
+  };
+
+  const source = fs.readFileSync(path.join(__dirname, "..", "public", "embed.js"), "utf8");
+  dom.window.eval(source);
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+
+  dom.window.document.getElementById("azsv-chat-link").click();
+  await new Promise((resolve) => setImmediate(resolve));
+  const panel = dom.window.document.getElementById("azsv-chat-panel");
+  assert.equal(panel.hidden, false);
+  assert.equal(panel.querySelector("[data-chat-nickname]").textContent, "a1b2c3");
+  assert.equal(panel.querySelector("[data-chat-body]").textContent, "Welcome");
+  assert.equal(Array.from(intervals.values()).some((entry) => entry.milliseconds === 5000), true);
+
+  panel.querySelector("[data-chat-input]").value = "Hello";
+  panel.querySelector("form").dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true }));
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(calls.some((call) => call.options.method === "POST" && call.url.endsWith("/chat/messages")), true);
+  assert.equal(panel.textContent.includes("Hello"), true);
+  assert.equal(panel.querySelector("[data-chat-input]").value, "");
+
+  const chatIntervalId = Array.from(intervals.entries()).find((entry) => entry[1].milliseconds === 5000)[0];
+  panel.querySelector("[data-chat-close]").click();
+  assert.equal(cleared.includes(chatIntervalId), true);
+  assert.equal(panel.hidden, true);
+});

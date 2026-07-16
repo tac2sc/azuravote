@@ -4,7 +4,9 @@ const { config, validateConfig } = require("./config");
 const { openDatabase, createStore } = require("./db");
 const { AzuraCastClient } = require("./azuracast");
 const { createVotingService, getClientIp, getVoterHash, sanitizeSong } = require("./votes");
-const { applySecurity, jsonParser, voteLimiter, requireJson, safeError } = require("./security");
+const { applySecurity, jsonParser, voteLimiter, chatLimiter, requireJson, safeError } = require("./security");
+
+const CHAT_MESSAGE_MAX_LENGTH = 200;
 
 function publicSong(row) {
   const song = sanitizeSong(row);
@@ -20,10 +22,35 @@ function publicSong(row) {
   };
 }
 
+function publicChatMessage(row) {
+  return {
+    id: Number(row.id),
+    nickname: String(row.voter_hash).slice(0, 6),
+    body: row.body,
+    created_at: row.created_at,
+  };
+}
+
 function parseLimit(value, fallback, max) {
   const limit = Number.parseInt(value || "", 10);
   if (!Number.isFinite(limit) || limit < 1) return fallback;
   return Math.min(limit, max);
+}
+
+function parseChatQueryInteger(value, { name, fallback, min, max }) {
+  if (value === undefined || value === "") return fallback;
+  if (!/^\d+$/.test(String(value))) {
+    const error = new Error(`${name} must be an integer from ${min} to ${max}`);
+    error.status = 400;
+    throw error;
+  }
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < min || parsed > max) {
+    const error = new Error(`${name} must be an integer from ${min} to ${max}`);
+    error.status = 400;
+    throw error;
+  }
+  return parsed;
 }
 
 function csvEscape(value) {
@@ -109,6 +136,40 @@ function createApp({ cfg = config, store, azuracastClient } = {}) {
     const song = database.getSongByKey(req.params.songKey);
     if (!song) return res.status(404).json({ ok: false, error: "Unknown song" });
     res.json({ song: publicSong(song), votes: database.getVoteTotals(song.id, getVoterHash(req, cfg.voterHashSecret)) });
+  });
+
+  app.get(withPublicPrefix("/api/chat/messages", cfg), (req, res) => {
+    try {
+      const after = parseChatQueryInteger(req.query.after, { name: "after", fallback: 0, min: 0, max: Number.MAX_SAFE_INTEGER });
+      const limit = parseChatQueryInteger(req.query.limit, { name: "limit", fallback: 50, min: 1, max: 100 });
+      const voterHash = getVoterHash(req, cfg.voterHashSecret);
+      const messages = database.listChatMessages({ after, limit }).map(publicChatMessage);
+      res.json({
+        ok: true,
+        nickname: voterHash.slice(0, 6),
+        messages,
+        latest_id: messages.length ? messages[messages.length - 1].id : after,
+      });
+    } catch (error) {
+      safeError(res, error, "Unable to load chat messages");
+    }
+  });
+
+  app.post(withPublicPrefix("/api/chat/messages", cfg), chatLimiter(cfg), requireJson, (req, res) => {
+    try {
+      const body = typeof req.body?.message === "string" ? req.body.message.trim() : "";
+      if (!body || Array.from(body).length > CHAT_MESSAGE_MAX_LENGTH) {
+        const error = new Error("Message must be between 1 and 200 characters");
+        error.status = 400;
+        throw error;
+      }
+      const voterHash = getVoterHash(req, cfg.voterHashSecret);
+      const row = database.createChatMessage(voterHash, getClientIp(req), body);
+      res.status(201).json({ ok: true, message: publicChatMessage(row) });
+    } catch (error) {
+      console.error("chat message failed:", error.message);
+      safeError(res, error, "Unable to post chat message");
+    }
   });
 
   app.get(withPublicPrefix("/api/recent", cfg), (req, res) => {

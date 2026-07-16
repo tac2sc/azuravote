@@ -3,8 +3,9 @@ const assert = require("node:assert/strict");
 const os = require("node:os");
 const path = require("node:path");
 const fs = require("node:fs");
+const Database = require("better-sqlite3");
 const { normalizeSong, mainStreamActive } = require("../azuracast");
-const { openDatabase, createStore } = require("../db");
+const { openDatabase, migrate, createStore } = require("../db");
 const { getVoterHash } = require("../votes");
 
 function tempStore() {
@@ -70,4 +71,49 @@ test("invalid vote value is rejected", () => {
   const store = tempStore();
   const song = store.upsertSong(normalizeSong({ song: { artist: "A", title: "B" } }));
   assert.throws(() => store.voteOnSong(song.id, "listener", 0), /Invalid vote value/);
+});
+
+test("chat migration is additive and idempotent for an existing voting database", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "azsv-legacy-"));
+  const db = new Database(path.join(dir, "votes.sqlite"));
+  db.exec(`
+    create table songs (
+      id integer primary key autoincrement,
+      azuracast_song_id text,
+      song_key text not null unique,
+      artist text not null,
+      title text not null,
+      album text,
+      art_url text,
+      first_seen_at text not null,
+      last_seen_at text not null
+    );
+    create table votes (
+      id integer primary key autoincrement,
+      song_id integer not null,
+      voter_hash text not null,
+      vote_value integer not null check (vote_value in (1, -1)),
+      created_at text not null,
+      updated_at text not null,
+      unique(song_id, voter_hash)
+    );
+    insert into songs (song_key, artist, title, first_seen_at, last_seen_at)
+      values ('legacy', 'Artist', 'Title', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z');
+    insert into votes (song_id, voter_hash, vote_value, created_at, updated_at)
+      values (1, 'listener', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z');
+  `);
+
+  migrate(db);
+  migrate(db);
+
+  assert.equal(db.prepare("select count(*) as count from votes").get().count, 1);
+  assert.deepEqual(
+    db.prepare("select name from pragma_table_info('chat_messages') order by cid").all().map((row) => row.name),
+    ["id", "voter_hash", "voter_ip", "body", "created_at"]
+  );
+  assert.deepEqual(
+    db.prepare("select name from sqlite_master where type = 'index' and tbl_name = 'chat_messages' and name like 'chat_messages_%' order by name").all().map((row) => row.name),
+    ["chat_messages_created_at_idx", "chat_messages_voter_hash_idx"]
+  );
+  db.close();
 });
