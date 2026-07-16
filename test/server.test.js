@@ -140,12 +140,15 @@ test("chat history supports an incremental cursor and bounded limit", async (t) 
 
   const response = await fetch(`${baseUrl}/api/chat/messages?after=1&limit=1`);
   const body = await response.json();
+  const fromStartResponse = await fetch(`${baseUrl}/api/chat/messages?after=0&limit=2`);
+  const fromStart = await fromStartResponse.json();
   const latestResponse = await fetch(`${baseUrl}/api/chat/messages?limit=2`);
   const latest = await latestResponse.json();
 
   assert.equal(response.status, 200);
   assert.deepEqual(body.messages.map((message) => message.body), ["two"]);
   assert.equal(body.latest_id, 2);
+  assert.deepEqual(fromStart.messages.map((message) => message.body), ["one", "two"]);
   assert.deepEqual(latest.messages.map((message) => message.body), ["two", "three"]);
 });
 
@@ -244,6 +247,7 @@ test("chat validates history queries on public-prefixed routes", async (t) => {
   const baseUrl = `http://127.0.0.1:${server.address().port}`;
 
   const prefixed = await fetch(`${baseUrl}/votes/api/chat/messages`);
+  const prefixedBody = await prefixed.json();
   const prefixedPost = await fetch(`${baseUrl}/votes/api/chat/messages`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -255,6 +259,7 @@ test("chat validates history queries on public-prefixed routes", async (t) => {
   const emptyLimit = await fetch(`${baseUrl}/votes/api/chat/messages?limit=`);
 
   assert.equal(prefixed.status, 200);
+  assert.deepEqual(Object.keys(prefixedBody), ["ok", "nickname", "messages", "latest_id"]);
   assert.equal(prefixedPost.status, 201);
   assert.equal(badAfter.status, 400);
   assert.equal(badLimit.status, 400);

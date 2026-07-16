@@ -144,7 +144,7 @@ function createApp({ cfg = config, store, azuracastClient } = {}) {
 
   app.get(withPublicPrefix("/api/chat/messages", cfg), (req, res) => {
     try {
-      const after = parseChatQueryInteger(req.query.after, { name: "after", fallback: 0, min: 0, max: Number.MAX_SAFE_INTEGER });
+      const after = parseChatQueryInteger(req.query.after, { name: "after", fallback: null, min: 0, max: Number.MAX_SAFE_INTEGER });
       const limit = parseChatQueryInteger(req.query.limit, { name: "limit", fallback: 50, min: 1, max: 100 });
       const voterHash = getVoterHash(req, cfg.voterHashSecret);
       const messages = database.listChatMessages({ after, limit }).map(publicChatMessage);
@@ -152,7 +152,7 @@ function createApp({ cfg = config, store, azuracastClient } = {}) {
         ok: true,
         nickname: chatNickname(voterHash),
         messages,
-        latest_id: messages.length ? messages[messages.length - 1].id : after,
+        latest_id: messages.length ? messages[messages.length - 1].id : (after ?? 0),
       });
     } catch (error) {
       safeError(res, error, "Unable to load chat messages");

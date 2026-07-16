@@ -173,8 +173,8 @@ function createStore(db) {
     return getChatMessageStmt.get(result.lastInsertRowid);
   }
 
-  function listChatMessages({ after = 0, limit = 50 } = {}) {
-    if (after > 0) {
+  function listChatMessages({ after = null, limit = 50 } = {}) {
+    if (after !== null) {
       return db.prepare("select * from chat_messages where id > ? order by id asc limit ?").all(after, limit);
     }
     return db.prepare(`
