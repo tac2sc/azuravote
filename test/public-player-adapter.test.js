@@ -106,6 +106,7 @@ test("adapter renders chat as plain text and forwards chat actions", () => {
   assert.equal(panel.querySelector("img"), null);
   assert.deepEqual(Array.from(panel.querySelectorAll(".azsv-chat-message")).map((message) => message.dataset.messageId), ["8", "7"]);
   assert.equal(panel.querySelector(".azsv-chat-message [data-chat-timestamp]").textContent, "07.17 10:05");
+  assert.equal(panel.querySelector(".azsv-chat-message [data-chat-timestamp]").className, "azsv-chat-timestamp");
   assert.match(dom.window.document.getElementById("azsv-player-adapter-style").textContent, /\.azsv-chat-message\{display:grid;grid-template-columns:minmax\(0,1fr\) auto/);
   assert.equal(dom.window.document.getElementById("azsv-song-vote-overlay").style.top, "50px");
 

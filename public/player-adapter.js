@@ -317,6 +317,7 @@
         content.appendChild(body);
         item.appendChild(content);
         var timestamp = doc.createElement("time");
+        timestamp.className = "azsv-chat-timestamp";
         timestamp.setAttribute("data-chat-timestamp", "");
         timestamp.dateTime = message.created_at || "";
         timestamp.textContent = formatChatTimestamp(message.created_at);
