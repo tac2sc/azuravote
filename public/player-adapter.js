@@ -176,7 +176,7 @@
       }
       voting.classList.toggle("azsv-mobile", mobile);
       voting.style.left = (nowPlayingRect && panelRect ? Math.max(8, nowPlayingRect.left - panelRect.left) : (mobile ? 92 : 126)) + "px";
-      voting.style.top = Math.max(8, top + (mobile ? -2 : 15)) + "px";
+      voting.style.top = Math.max(8, top + (mobile ? 7 : 15)) + "px";
 
       var chat = doc.getElementById("azsv-chat-panel");
       if (!chat) {
