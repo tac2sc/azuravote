@@ -165,11 +165,17 @@
       if (voting.parentNode !== panel) panel.appendChild(voting);
       var panelRect = visibleRect(panel);
       var nowPlaying = panel.querySelector(".now-playing-main");
+      var radioWidget = panel.querySelector(".radio-player-widget");
       var nowPlayingRect = nowPlaying && visibleRect(nowPlaying);
       var mobile = layout(panel) === "mobile";
+      var overlayHeight = voting.offsetHeight || 18;
+      var top = mobile ? 148 : 160;
+      if (radioWidget && panelRect) {
+        top = radioWidget.getBoundingClientRect().top - panelRect.top - overlayHeight - 4;
+      }
       voting.classList.toggle("azsv-mobile", mobile);
       voting.style.left = (nowPlayingRect && panelRect ? Math.max(8, nowPlayingRect.left - panelRect.left) : (mobile ? 92 : 126)) + "px";
-      voting.style.top = (nowPlayingRect && panelRect ? Math.max(8, nowPlayingRect.top - panelRect.top + (nowPlayingRect.height - voting.offsetHeight) / 2) : (mobile ? 148 : 175)) + "px";
+      voting.style.top = Math.max(8, top + (mobile ? -2 : 15)) + "px";
 
       var chat = doc.getElementById("azsv-chat-panel");
       if (!chat) {

@@ -76,6 +76,7 @@ test("adapter removes native UI when the station player disappears", async () =>
 test("adapter renders chat as plain text and forwards chat actions", () => {
   const dom = playerFixture();
   dom.window.document.querySelector(".now-playing-main").getBoundingClientRect = () => ({ left: 136, top: 40, right: 536, bottom: 80, width: 400, height: 40 });
+  dom.window.document.querySelector(".radio-player-widget").getBoundingClientRect = () => ({ left: 136, top: 160, right: 536, bottom: 180, width: 400, height: 20 });
   const events = [];
   const adapter = createPublicPlayerAdapter({ window: dom.window, document: dom.window.document });
   adapter.install({
@@ -108,7 +109,7 @@ test("adapter renders chat as plain text and forwards chat actions", () => {
   assert.equal(panel.querySelector(".azsv-chat-message [data-chat-timestamp]").textContent, "07.17 10:05");
   assert.equal(panel.querySelector(".azsv-chat-message [data-chat-timestamp]").className, "azsv-chat-timestamp");
   assert.match(dom.window.document.getElementById("azsv-player-adapter-style").textContent, /\.azsv-chat-message\{display:grid;grid-template-columns:minmax\(0,1fr\) auto/);
-  assert.equal(dom.window.document.getElementById("azsv-song-vote-overlay").style.top, "50px");
+  assert.equal(dom.window.document.getElementById("azsv-song-vote-overlay").style.top, "143px");
 
   const input = panel.querySelector("[data-chat-input]");
   input.value = "Hello back";
