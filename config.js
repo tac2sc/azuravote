@@ -46,7 +46,7 @@ const config = {
   rateLimitWindowMs: int("RATE_LIMIT_WINDOW_MS", 60000),
   rateLimitMaxVotes: int("RATE_LIMIT_MAX_VOTES", 20),
   chatRateLimitWindowMs: int("CHAT_RATE_LIMIT_WINDOW_MS", 60000),
-  chatRateLimitMaxMessages: int("CHAT_RATE_LIMIT_MAX_MESSAGES", 5),
+  chatRateLimitMaxMessages: int("CHAT_RATE_LIMIT_MAX_MESSAGES", 1),
 };
 
 function validateConfig(cfg = config) {
