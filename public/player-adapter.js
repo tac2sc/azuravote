@@ -183,7 +183,7 @@
         chat.id = "azsv-chat-panel";
         chat.hidden = true;
         chat.setAttribute("aria-label", label("chatTitle", "Station chat"));
-        chat.innerHTML = "<div class='azsv-panel-head'><strong data-chat-title></strong><button type='button' data-chat-close>x</button></div><p><span data-posting-as></span> <strong data-chat-nickname></strong></p><div data-chat-messages aria-live='polite'></div><form><label><span data-message-label></span> <input data-chat-input maxlength='200' autocomplete='off'></label><button type='submit' data-chat-submit></button></form><p data-chat-error role='status'></p>";
+        chat.innerHTML = "<div class='azsv-panel-head'><strong data-chat-title></strong><button type='button' data-chat-close>x</button></div><p><span data-posting-as></span> <strong data-chat-nickname></strong></p><form><label><span data-message-label></span> <input data-chat-input maxlength='200' autocomplete='off'></label><button type='submit' data-chat-submit></button></form><div data-chat-messages aria-live='polite'></div><p data-chat-error role='status'></p>";
         chat.querySelector("[data-chat-title]").textContent = label("chatTitle", "Station chat");
         chat.querySelector("[data-chat-close]").setAttribute("aria-label", label("closeChat", "Close chat"));
         chat.querySelector("[data-posting-as]").textContent = label("postingAs", "Posting as");

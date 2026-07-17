@@ -100,9 +100,14 @@ test("adapter renders chat as plain text and forwards chat actions", () => {
   });
 
   const panel = dom.window.document.getElementById("azsv-chat-panel");
+  const postingAs = panel.querySelector("[data-posting-as]").parentElement;
+  const form = panel.querySelector("form");
+  const messages = panel.querySelector("[data-chat-messages]");
   assert.equal(panel.hidden, false);
   assert.equal(dom.window.document.getElementById("azsv-chat-link").getAttribute("aria-expanded"), "true");
   assert.equal(panel.querySelector("[data-chat-nickname]").textContent, "a1b2c3");
+  assert.equal(postingAs.nextElementSibling, form);
+  assert.equal(form.nextElementSibling, messages);
   assert.equal(panel.querySelector("[data-message-id='7'] [data-chat-body]").textContent, "<img src=x onerror=alert(1)>");
   assert.equal(panel.querySelector("img"), null);
   assert.deepEqual(Array.from(panel.querySelectorAll(".azsv-chat-message")).map((message) => message.dataset.messageId), ["8", "7"]);
