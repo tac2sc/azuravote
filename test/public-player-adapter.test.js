@@ -114,6 +114,7 @@ test("adapter renders chat as plain text and forwards chat actions", () => {
   assert.equal(panel.querySelector(".azsv-chat-message [data-chat-timestamp]").textContent, "07.17 10:05");
   assert.equal(panel.querySelector(".azsv-chat-message [data-chat-timestamp]").className, "azsv-chat-timestamp");
   assert.match(dom.window.document.getElementById("azsv-player-adapter-style").textContent, /\.azsv-chat-message\{display:grid;grid-template-columns:minmax\(0,1fr\) auto/);
+  assert.match(dom.window.document.getElementById("azsv-player-adapter-style").textContent, /#azsv-chat-panel form\{margin:10px 0 8px\}#azsv-chat-panel input\{padding:4px\}#azsv-chat-panel \[data-chat-submit\]\{padding:4px 9px/);
   assert.equal(dom.window.document.getElementById("azsv-song-vote-overlay").style.top, "143px");
 
   const input = panel.querySelector("[data-chat-input]");
