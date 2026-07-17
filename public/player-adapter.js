@@ -170,7 +170,7 @@
       var mobile = layout(panel) === "mobile";
       var overlayHeight = voting.offsetHeight || 18;
       var top = mobile ? 148 : 160;
-      if (radioWidget && panelRect) {
+      if (radioWidget) {
         top = radioWidget.getBoundingClientRect().top - panelRect.top - overlayHeight - 4;
       }
       voting.classList.toggle("azsv-mobile", mobile);
