@@ -64,7 +64,7 @@ Paste this JavaScript:
 ```js
 (function () {
   var s = document.createElement("script");
-  s.src = "/votes/embed.js?v=2";
+  s.src = "/votes/embed.js?v=3";
   s.defer = true;
   document.head.appendChild(s);
 })();
