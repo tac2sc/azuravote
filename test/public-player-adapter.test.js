@@ -75,6 +75,7 @@ test("adapter removes native UI when the station player disappears", async () =>
 
 test("adapter renders chat as plain text and forwards chat actions", () => {
   const dom = playerFixture();
+  dom.window.document.querySelector(".now-playing-main").getBoundingClientRect = () => ({ left: 136, top: 40, right: 536, bottom: 80, width: 400, height: 40 });
   const events = [];
   const adapter = createPublicPlayerAdapter({ window: dom.window, document: dom.window.document });
   adapter.install({
@@ -83,11 +84,15 @@ test("adapter renders chat as plain text and forwards chat actions", () => {
   });
 
   adapter.render({
+    voting: { visible: true, upvotes: 2, downvotes: 1, myVote: null },
     chat: {
       visible: true,
       open: true,
       nickname: "a1b2c3",
-      messages: [{ id: 7, nickname: "d4e5f6", body: "<img src=x onerror=alert(1)>", created_at: "2026-07-17T10:00:00.000Z" }],
+      messages: [
+        { id: 7, nickname: "d4e5f6", body: "<img src=x onerror=alert(1)>", created_at: new Date(2026, 6, 17, 10, 0).toISOString() },
+        { id: 8, nickname: "a1b2c3", body: "Newest", created_at: new Date(2026, 6, 17, 10, 5).toISOString() },
+      ],
       pending: false,
       error: "",
     },
@@ -97,8 +102,12 @@ test("adapter renders chat as plain text and forwards chat actions", () => {
   assert.equal(panel.hidden, false);
   assert.equal(dom.window.document.getElementById("azsv-chat-link").getAttribute("aria-expanded"), "true");
   assert.equal(panel.querySelector("[data-chat-nickname]").textContent, "a1b2c3");
-  assert.equal(panel.querySelector("[data-chat-body]").textContent, "<img src=x onerror=alert(1)>");
+  assert.equal(panel.querySelector("[data-message-id='7'] [data-chat-body]").textContent, "<img src=x onerror=alert(1)>");
   assert.equal(panel.querySelector("img"), null);
+  assert.deepEqual(Array.from(panel.querySelectorAll(".azsv-chat-message")).map((message) => message.dataset.messageId), ["8", "7"]);
+  assert.equal(panel.querySelector(".azsv-chat-message [data-chat-timestamp]").textContent, "07.17 10:05");
+  assert.match(dom.window.document.getElementById("azsv-player-adapter-style").textContent, /\.azsv-chat-message\{display:grid;grid-template-columns:minmax\(0,1fr\) auto/);
+  assert.equal(dom.window.document.getElementById("azsv-song-vote-overlay").style.top, "50px");
 
   const input = panel.querySelector("[data-chat-input]");
   input.value = "Hello back";
