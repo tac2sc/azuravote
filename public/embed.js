@@ -12,6 +12,18 @@
     ru: { like: "Нравится", dislike: "Не нравится", ratings: "Рейтинги", ratingsTitle: "Рейтинг треков", closeRatings: "Закрыть рейтинги", topRated: "Лучшие", lowRated: "Низкие оценки", chat: "Чат", chatTitle: "Чат станции", closeChat: "Закрыть чат", postingAs: "Ваш псевдоним", message: "Сообщение", send: "Отправить", loadError: "Не удалось загрузить голоса", voteError: "Не удалось сохранить голос", ratingsError: "Не удалось загрузить рейтинги", chatLoadError: "Не удалось загрузить чат", chatPostError: "Не удалось отправить сообщение", chatLengthError: "Сообщение должно содержать от 1 до 200 символов" },
     uk: { like: "Подобається", dislike: "Не подобається", ratings: "Рейтинги", ratingsTitle: "Рейтинг треків", closeRatings: "Закрити рейтинги", topRated: "Найкращі", lowRated: "Низькі оцінки", chat: "Чат", chatTitle: "Чат станції", closeChat: "Закрити чат", postingAs: "Ваш псевдонім", message: "Повідомлення", send: "Надіслати", loadError: "Не вдалося завантажити голоси", voteError: "Не вдалося зберегти голос", ratingsError: "Не вдалося завантажити рейтинги", chatLoadError: "Не вдалося завантажити чат", chatPostError: "Не вдалося надіслати повідомлення", chatLengthError: "Повідомлення має містити від 1 до 200 символів" }
   };
+  translations.en.noVotes = "No votes yet";
+  translations.en.unknownSong = "Unknown song";
+  translations.en.unknownArtist = "Unknown artist";
+  translations.es.noVotes = "Sin votos todavía";
+  translations.es.unknownSong = "Canción desconocida";
+  translations.es.unknownArtist = "Artista desconocido";
+  translations.ru.noVotes = "Пока нет голосов";
+  translations.ru.unknownSong = "Неизвестный трек";
+  translations.ru.unknownArtist = "Неизвестный артист";
+  translations.uk.noVotes = "Поки немає голосів";
+  translations.uk.unknownSong = "Невідомий трек";
+  translations.uk.unknownArtist = "Невідомий артист";
 
   function localeText() {
     var languages = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || "en"];

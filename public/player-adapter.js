@@ -125,6 +125,7 @@
       var style = doc.createElement("style");
       style.id = "azsv-player-adapter-style";
       style.textContent = "#azsv-player-controls{position:absolute;z-index:22;top:10px;right:12px;display:flex;gap:6px}#azsv-player-controls button{border:0;border-radius:999px;padding:2px 8px;color:#d1a83a;background:rgba(15,20,28,.66);box-shadow:0 1px 4px rgba(0,0,0,.18);font:inherit;font-size:11px;font-weight:800;line-height:1.35;cursor:pointer}#azsv-player-controls button:hover,#azsv-player-controls button[aria-expanded='true']{color:#f7f3ea;background:rgba(209,168,58,.32)}#azsv-song-vote-overlay{position:absolute;z-index:23;display:flex;align-items:center;gap:7px;color:rgba(247,243,234,.92);font-family:inherit}#azsv-song-vote-overlay button{display:inline-flex;align-items:center;gap:3px;border:0;padding:1px;color:inherit;background:transparent;font:inherit;font-size:12px;font-weight:800;cursor:pointer}#azsv-song-vote-overlay button:disabled{cursor:wait;opacity:.58}#azsv-song-vote-overlay svg{width:13px;height:13px;fill:currentColor;filter:drop-shadow(0 1px 2px rgba(0,0,0,.28))}#azsv-song-vote-overlay [data-vote='1']{color:#4ade80}#azsv-song-vote-overlay [data-vote='-1']{color:#fb7185}#azsv-ratings-panel,#azsv-chat-panel{position:fixed;z-index:31;width:310px;max-height:360px;overflow:auto;padding:12px;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:#1f2430;color:#f7f3ea;box-shadow:0 18px 42px rgba(0,0,0,.34);font-family:inherit;font-size:12px}#azsv-ratings-panel[hidden],#azsv-chat-panel[hidden],#azsv-song-vote-overlay[hidden]{display:none}.azsv-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px;color:#d1a83a}.azsv-panel-head button{border:0;background:transparent;color:rgba(247,243,234,.72);font:inherit;font-size:18px;cursor:pointer}.azsv-chat-message{padding:6px 0;border-top:1px solid rgba(255,255,255,.08);overflow-wrap:anywhere}.azsv-chat-message strong{color:#d1a83a}#azsv-chat-panel form{display:flex;align-items:end;gap:6px;margin-top:10px}#azsv-chat-panel label{flex:1}#azsv-chat-panel input{display:block;width:100%;margin-top:4px;padding:6px;border:1px solid rgba(255,255,255,.18);border-radius:5px;color:#f7f3ea;background:rgba(255,255,255,.06)}#azsv-chat-panel [data-chat-submit]{padding:6px 9px;border:0;border-radius:5px;color:#1f2430;background:#d1a83a;font:inherit;font-weight:800;cursor:pointer}@media(max-width:760px){#azsv-ratings-panel,#azsv-chat-panel{right:14px!important;left:14px!important;width:auto;max-height:45vh}}";
+      style.textContent += "#azsv-ratings-panel .azsv-ratings-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 9px}#azsv-ratings-panel .azsv-ratings-title{margin:0;color:#d1a83a;font-size:12px;font-weight:900;text-transform:uppercase}#azsv-ratings-panel .azsv-ratings-close{border:0;background:transparent;color:rgba(247,243,234,.72);font:inherit;font-size:18px;line-height:1;cursor:pointer}#azsv-ratings-panel .azsv-ratings-section{margin:10px 0 0}#azsv-ratings-panel .azsv-ratings-section-title{margin:0 0 6px;color:rgba(247,243,234,.58);font-size:11px;font-weight:900;text-transform:uppercase}#azsv-ratings-panel .azsv-ratings-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:7px 0;border-top:1px solid rgba(255,255,255,.08)}#azsv-ratings-panel .azsv-ratings-song{min-width:0}#azsv-ratings-panel .azsv-ratings-main{overflow-wrap:anywhere;font-size:12px;font-weight:800}#azsv-ratings-panel .azsv-ratings-sub{margin-top:2px;color:rgba(247,243,234,.62);font-size:11px;overflow-wrap:anywhere}#azsv-ratings-panel .azsv-ratings-score{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:900;white-space:nowrap}#azsv-ratings-panel .azsv-rating-up{color:#4ade80}#azsv-ratings-panel .azsv-rating-down{color:#fb7185}#azsv-ratings-panel .azsv-ratings-empty{margin:8px 0;color:rgba(247,243,234,.62);font-size:12px}";
       doc.head.appendChild(style);
     }
 
@@ -201,10 +202,10 @@
         ratings.id = "azsv-ratings-panel";
         ratings.hidden = true;
         ratings.setAttribute("aria-label", label("ratingsTitle", "Song ratings"));
-        ratings.innerHTML = "<div class='azsv-panel-head'><strong data-ratings-title></strong><button type='button' data-ratings-close>x</button></div><div data-ratings-body></div><p data-ratings-error role='status'></p>";
-        ratings.querySelector("[data-ratings-title]").textContent = label("ratingsTitle", "Song ratings");
-        ratings.querySelector("[data-ratings-close]").setAttribute("aria-label", label("closeRatings", "Close ratings"));
-        ratings.querySelector("[data-ratings-close]").addEventListener("click", function () {
+        ratings.innerHTML = "<div class='azsv-ratings-head'><h3 class='azsv-ratings-title'></h3><button type='button' class='azsv-ratings-close' aria-label=''>x</button></div><div data-ratings-body></div><p data-ratings-error role='status'></p>";
+        ratings.querySelector(".azsv-ratings-title").textContent = label("ratingsTitle", "Song ratings");
+        ratings.querySelector(".azsv-ratings-close").setAttribute("aria-label", label("closeRatings", "Close ratings"));
+        ratings.querySelector(".azsv-ratings-close").addEventListener("click", function () {
           if (actions.onRatingsToggle) actions.onRatingsToggle(false);
         });
         doc.body.appendChild(ratings);
@@ -348,12 +349,45 @@
       body.replaceChildren();
       (model.sections || []).forEach(function (sectionModel) {
         var section = doc.createElement("section");
-        var heading = doc.createElement("strong");
+        section.className = "azsv-ratings-section";
+        var heading = doc.createElement("h4");
+        heading.className = "azsv-ratings-section-title";
         heading.textContent = sectionModel.title || "";
         section.appendChild(heading);
-        (sectionModel.songs || []).forEach(function (song) {
+        var songs = sectionModel.songs || [];
+        if (!songs.length) {
+          var empty = doc.createElement("p");
+          empty.className = "azsv-ratings-empty";
+          empty.textContent = label("noVotes", "No votes yet");
+          section.appendChild(empty);
+        }
+        songs.forEach(function (song) {
           var row = doc.createElement("div");
-          row.textContent = (song.title || "Unknown song") + " — " + (song.artist || "Unknown artist") + " (" + (song.upvotes || 0) + (model.hideDownvotes ? "" : "/" + (song.downvotes || 0)) + ")";
+          row.className = "azsv-ratings-row";
+          var details = doc.createElement("div");
+          details.className = "azsv-ratings-song";
+          var main = doc.createElement("div");
+          main.className = "azsv-ratings-main";
+          main.textContent = song.title || label("unknownSong", "Unknown song");
+          var sub = doc.createElement("div");
+          sub.className = "azsv-ratings-sub";
+          sub.textContent = song.artist || label("unknownArtist", "Unknown artist");
+          details.appendChild(main);
+          details.appendChild(sub);
+          var score = doc.createElement("div");
+          score.className = "azsv-ratings-score";
+          var up = doc.createElement("span");
+          up.className = "azsv-rating-up";
+          up.textContent = "+" + (song.upvotes || 0);
+          score.appendChild(up);
+          if (!model.hideDownvotes) {
+            var down = doc.createElement("span");
+            down.className = "azsv-rating-down";
+            down.textContent = "-" + (song.downvotes || 0);
+            score.appendChild(down);
+          }
+          row.appendChild(details);
+          row.appendChild(score);
           section.appendChild(row);
         });
         body.appendChild(section);

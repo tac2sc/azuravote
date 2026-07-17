@@ -109,6 +109,44 @@ test("adapter renders chat as plain text and forwards chat actions", () => {
   adapter.dispose();
 });
 
+test("adapter renders structured, safe ratings rows", () => {
+  const dom = playerFixture();
+  const adapter = createPublicPlayerAdapter({ window: dom.window, document: dom.window.document });
+  adapter.install({});
+
+  adapter.render({
+    ratings: {
+      visible: true,
+      open: true,
+      sections: [{
+        title: "Top rated",
+        songs: [{
+          title: "A very long <strong>title</strong> that must not run into the vote totals",
+          artist: "Artist name",
+          upvotes: 12,
+          downvotes: 3,
+        }],
+      }],
+    },
+  });
+
+  const panel = dom.window.document.getElementById("azsv-ratings-panel");
+  const row = panel.querySelector(".azsv-ratings-row");
+  assert.equal(panel.querySelector(".azsv-ratings-title").textContent, "Song ratings");
+  assert.equal(panel.querySelector(".azsv-ratings-close").getAttribute("aria-label"), "Close ratings");
+  assert.equal(row.querySelector(".azsv-ratings-main").textContent, "A very long <strong>title</strong> that must not run into the vote totals");
+  assert.equal(row.querySelector(".azsv-ratings-sub").textContent, "Artist name");
+  assert.equal(row.querySelector(".azsv-rating-up").textContent, "+12");
+  assert.equal(row.querySelector(".azsv-rating-down").textContent, "-3");
+  assert.equal(row.querySelector("strong strong"), null);
+  assert.match(dom.window.document.getElementById("azsv-player-adapter-style").textContent, /grid-template-columns:minmax\(0,1fr\) auto/);
+
+  adapter.render({ ratings: { visible: true, open: true, hideDownvotes: true, sections: [{ title: "Top rated", songs: [{ title: "Title", artist: "Artist", upvotes: 1, downvotes: 1 }] }] } });
+  assert.equal(panel.querySelector(".azsv-rating-down"), null);
+
+  adapter.dispose();
+});
+
 test("adapter reports secondary-stream selection while keeping station chat available", () => {
   const dom = playerFixture();
   const adapter = createPublicPlayerAdapter({ window: dom.window, document: dom.window.document });
