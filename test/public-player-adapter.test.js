@@ -23,6 +23,39 @@ function playerFixture() {
   return dom;
 }
 
+function embeddedPlayerFixture() {
+  const dom = new JSDOM(`<!doctype html><html><head></head><body class="embed-player">
+    <div class="radio-player-widget layout-horizontal">
+      <div class="now-playing-main"></div>
+    </div>
+  </body></html>`, { url: "https://radio.example/public/progressiveua/embed", runScripts: "outside-only" });
+  const player = dom.window.document.querySelector(".radio-player-widget");
+  player.getBoundingClientRect = () => ({ left: 0, top: 0, right: 640, bottom: 180, width: 640, height: 180 });
+  return dom;
+}
+
+test("adapter installs native voting UI in the AzuraCast iframe player", () => {
+  const dom = embeddedPlayerFixture();
+  const adapter = createPublicPlayerAdapter({ window: dom.window, document: dom.window.document });
+  let currentSnapshot;
+
+  adapter.install({});
+  adapter.observe((snapshot) => { currentSnapshot = snapshot; });
+  adapter.render({ voting: { visible: true, upvotes: 2, downvotes: 1, myVote: null } });
+
+  assert.deepEqual(currentSnapshot, {
+    pageKind: "station-player",
+    playerPresent: true,
+    mainStreamSelected: true,
+    layout: "desktop",
+  });
+  assert.equal(dom.window.document.getElementById("azsv-song-vote-widget"), null);
+  assert.equal(dom.window.document.getElementById("azsv-song-vote-overlay").hidden, false);
+  assert.equal(dom.window.document.getElementById("azsv-song-vote-overlay").style.top, "8px");
+
+  adapter.dispose();
+});
+
 test("adapter installs one collapsed Chat control on the station player", () => {
   const dom = playerFixture();
   const adapter = createPublicPlayerAdapter({ window: dom.window, document: dom.window.document });

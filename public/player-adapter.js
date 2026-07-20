@@ -34,7 +34,8 @@
 
     function pageKind() {
       var path = win.location && win.location.pathname || "";
-      if (doc.body.classList.contains("page-station-public-player") || doc.getElementById("public-radio-player")) {
+      if (doc.body.classList.contains("page-station-public-player") || doc.getElementById("public-radio-player") ||
+        (doc.body.classList.contains("embed-player") && doc.querySelector(".radio-player-widget"))) {
         return "station-player";
       }
       if (/^\/public\/[^/]+\/?$/.test(path)) return "station-public";
@@ -48,7 +49,8 @@
     }
 
     function findPlayerPanel() {
-      var root = doc.getElementById("public-radio-player");
+      var root = doc.getElementById("public-radio-player") ||
+        (doc.body.classList.contains("embed-player") && doc.querySelector(".radio-player-widget"));
       if (!root) return null;
       var candidates = Array.prototype.slice.call(root.querySelectorAll("section,article,div"));
       candidates.push(root);
@@ -166,7 +168,7 @@
       if (voting.parentNode !== panel) panel.appendChild(voting);
       var panelRect = visibleRect(panel);
       var nowPlaying = panel.querySelector(".now-playing-main");
-      var radioWidget = panel.querySelector(".radio-player-widget");
+      var radioWidget = panel.matches(".radio-player-widget") ? panel : panel.querySelector(".radio-player-widget");
       var nowPlayingRect = nowPlaying && visibleRect(nowPlaying);
       var mobile = layout(panel) === "mobile";
       var overlayHeight = voting.offsetHeight || 18;
