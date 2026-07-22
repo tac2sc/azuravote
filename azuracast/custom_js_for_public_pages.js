@@ -290,11 +290,6 @@ async function updateMetadata() {
 
     const rawMetadata = await response.text();
 
-    if (!String(rawMetadata || "").replace(/\0/g, "").trim()) {
-      renderMetadataUnavailable(source);
-      return;
-    }
-
     const metadata = parseMetadata(rawMetadata);
 
     if (!metadata) {
