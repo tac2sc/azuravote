@@ -134,7 +134,7 @@ docker compose exec azuravote node -e 'const Database=require("better-sqlite3");
 ```
 To clear everything, votes and songs:
 ```
-docker compose exec azuravote node -e 'const Database=require("better-sqlite3"); const db=new Database(process.env.DATABASE_PATH||process.env.DB_PATH||"/data/azuravote.sqlite"); db.exec("delete from votes; delete from songs;"); onsole.log("cleared votes and songs")'
+docker compose exec azuravote node -e 'const Database=require("better-sqlite3"); const db=new Database(process.env.DATABASE_PATH||process.env.DB_PATH||"/data/azuravote.sqlite"); db.exec("delete from votes; delete from songs;"); console.log("cleared votes and songs")'
 ```
 
 ## Rotation Sync
@@ -157,7 +157,7 @@ Get PLAYLIST_ID:
 ```
 curl -s \
   -H "Authorization: Bearer YOUR_API_KEY" \
-  http://yourhost.radio/api/station/progressiveua/playlists \
+  http://[yourhost.radio]/api/station/[station_name]/playlists \
   | jq '.[] | {id, name}'
 ```
 
