@@ -136,6 +136,10 @@ To clear everything, votes and songs:
 ```
 docker compose exec azuravote node -e 'const Database=require("better-sqlite3"); const db=new Database(process.env.DATABASE_PATH||process.env.DB_PATH||"/data/azuravote.sqlite"); db.exec("delete from votes; delete from songs;"); console.log("cleared votes and songs")'
 ```
+Clear chat:
+```
+docker compose exec azuravote node -e 'const Database=require("better-sqlite3"); const db=new Database(process.env.DATABASE_PATH||process.env.DB_PATH||"/data/azuravote.sqlite"); db.exec("delete from chat_messages;"); console.log("cleared chat")'
+```
 
 ## Rotation Sync
 Rotation sync is optional. It uses vote totals to update AzuraCast playlist assignments.
