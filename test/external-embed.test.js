@@ -117,6 +117,55 @@ test("embed rejects stale external resolver responses and disables voting when m
   assert.equal(overlay.hidden, true);
 });
 
+test("late vote response cannot overwrite totals after the active external song changes", async () => {
+  const voteResponse = deferred();
+  const voteRequests = [];
+  const fixture = playerFixture(async (url, options = {}) => {
+    if (String(url).endsWith("/config")) return response({ hidePublicDownvotes: false });
+    if (String(url).endsWith("/now-playing")) return response({ stream_active: true, song: { song_key: "az:main" }, votes: { upvotes: 1, downvotes: 0, my_vote: null } });
+    if (String(url).endsWith("/external-now-playing")) {
+      const body = JSON.parse(options.body);
+      const first = body.title === "First";
+      return response({
+        ok: true,
+        song: { song_key: first ? "meta:artist::first" : "meta:artist::second" },
+        votes: { upvotes: first ? 3 : 6, downvotes: 0, score: first ? 3 : 6, my_vote: null },
+      });
+    }
+    if (String(url).endsWith("/vote")) {
+      voteRequests.push(JSON.parse(options.body));
+      return voteResponse.promise;
+    }
+    return response({ songs: [] });
+  }, { active: false });
+  await flush();
+  await flush();
+
+  publish(fixture.dom, { active: true, source: "loops-radio", available: true, artist: "Artist", title: "First" });
+  await flush();
+  const overlay = voteOverlay(fixture.dom);
+  assert.equal(overlay.querySelector("[data-upvotes]").textContent, "3");
+
+  overlay.querySelector("[data-vote='1']").click();
+  await flush();
+  assert.deepEqual(voteRequests, [{ song_key: "meta:artist::first", vote: 1 }]);
+
+  publish(fixture.dom, { active: true, source: "yoga-chill", available: true, artist: "Artist", title: "Second" });
+  await flush();
+  assert.equal(overlay.querySelector("[data-upvotes]").textContent, "6");
+
+  voteResponse.resolve(response({
+    ok: true,
+    stream_active: true,
+    song: { song_key: "meta:artist::first" },
+    votes: { upvotes: 4, downvotes: 0, score: 4, my_vote: 1 },
+  }));
+  await flush();
+  await flush();
+
+  assert.equal(overlay.querySelector("[data-upvotes]").textContent, "6");
+});
+
 test("embed restores main-stream voting immediately after external mode ends", async () => {
   let mainLoads = 0;
   const fixture = playerFixture(async (url) => {

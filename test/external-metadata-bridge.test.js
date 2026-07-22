@@ -55,7 +55,7 @@ test("custom public JS publishes valid external metadata and stores a startup sn
   assert.deepEqual(plain(fixture.dom.window.AZURAVOTE_EXTERNAL_METADATA), expected);
   assert.equal(fixture.dom.window.document.querySelector(".now-playing-artist").textContent, "External Artist");
   assert.equal(fixture.dom.window.document.querySelector(".now-playing-title").textContent, "External Title");
-  assert.equal(fixture.dom.window.document.querySelector("script").src, "https://radio.example/votes/embed.js?v=10");
+  assert.equal(fixture.dom.window.document.querySelector("script").src, "https://radio.example/votes/embed.js?v=11");
 });
 
 test("custom public JS publishes unavailable metadata for empty and failed responses", async () => {

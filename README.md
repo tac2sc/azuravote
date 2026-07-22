@@ -65,7 +65,7 @@ external-stream metadata updater and loads AzuraVote with this cache-versioned U
 ```js
 (function () {
   var s = document.createElement("script");
-  s.src = "/votes/embed.js?v=10";
+  s.src = "/votes/embed.js?v=11";
   s.defer = true;
   document.head.appendChild(s);
 })();

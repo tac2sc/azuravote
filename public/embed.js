@@ -243,17 +243,20 @@
 
     function submitVote(vote) {
       if (state.votePending || !voteUiVisible() || !state.songKey) return;
+      var submittedSongKey = state.songKey;
       state.votePending = true;
       state.voteMessage = "";
       render();
       fetchJson(apiPath("vote"), {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ song_key: state.songKey, vote: vote })
+        body: JSON.stringify({ song_key: submittedSongKey, vote: vote })
       }).then(function (data) {
+        if (state.songKey !== submittedSongKey) return;
         state.apiStreamActive = data.stream_active !== false;
         state.votes = data.votes || state.votes;
       }).catch(function (error) {
+        if (state.songKey !== submittedSongKey) return;
         state.voteMessage = error.message || text.voteError;
       }).finally(function () {
         state.votePending = false;

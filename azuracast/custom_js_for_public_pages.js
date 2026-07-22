@@ -1,7 +1,7 @@
 (function () {
 "use strict";
 
-const AZURAVOTE_SCRIPT_URL = "/votes/embed.js?v=10";
+const AZURAVOTE_SCRIPT_URL = "/votes/embed.js?v=11";
 const REMOTE_METADATA_INTERVAL_MS = 10000;
 
 const REMOTE_METADATA_SOURCES = [
