@@ -122,6 +122,20 @@ function createApp({ cfg = config, store, azuracastClient } = {}) {
     }
   });
 
+  app.post(withPublicPrefix("/api/external-now-playing", cfg), voteLimiter(cfg), requireJson, (req, res) => {
+    try {
+      const result = voting.resolveExternalSong({
+        artist: req.body?.artist,
+        title: req.body?.title,
+        voterHash: getVoterHash(req, cfg.voterHashSecret),
+      });
+      res.json({ ok: true, song: publicSong(result.song), votes: result.votes });
+    } catch (error) {
+      console.error("external now-playing failed:", error.message);
+      safeError(res, error, "Unable to resolve external song");
+    }
+  });
+
   app.post(withPublicPrefix("/api/vote", cfg), voteLimiter(cfg), requireJson, async (req, res) => {
     try {
       const voteValue = Number(req.body?.vote);

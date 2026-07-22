@@ -60,17 +60,52 @@ curl -i http://yourhost.radio/votes/health
 ## Widget Install
 In AzuraCast, open:
 `Station -> Public Pages -> Branding -> Custom JS for Public Pages`
-Paste this JavaScript:
+Paste the contents of `azuracast/custom_js_for_public_pages.js`. That script includes the
+external-stream metadata updater and loads AzuraVote with this cache-versioned URL:
 ```js
 (function () {
   var s = document.createElement("script");
-  s.src = "/votes/embed.js?v=4";
+  s.src = "/votes/embed.js?v=10";
   s.defer = true;
   document.head.appendChild(s);
 })();
 ```
 Save, then reload the public station page.
 When `public/embed.js` changes, increase the cache number, for example `v=2`, `v=3`, etc.
+
+## External-stream metadata and voting
+
+`azuracast/custom_js_for_public_pages.js` detects supported external streams, updates the
+AzuraCast now-playing labels, and polls the matching same-origin nginx metadata endpoint
+every ten seconds:
+
+- Loops Radio: stream URLs containing `progressive.ozelip.com/7670/stream` use
+  `/loopsradio-metadata` and the stable source ID `loops-radio`.
+- Yoga Chill: stream URLs containing `radio4.vip-radios.fm:18027` use
+  `/yogachill-metadata` and the stable source ID `yoga-chill`.
+
+The proxy locations live in `azuracast/nginx-custom.conf`, keeping upstream metadata
+requests same-origin for the public page. The Loops Radio location is enabled. Yoga Chill
+voting remains inactive until the commented `/yogachill-metadata` proxy location is
+configured and enabled with an upstream that returns plain-text song metadata.
+
+The updater stores its latest state in `window.AZURAVOTE_EXTERNAL_METADATA` and dispatches
+an `azuravote:external-metadata` DOM event with the same payload. Successful metadata uses:
+
+```js
+{ active: true, source: "loops-radio", available: true, artist: "Artist", title: "Title" }
+```
+
+A failed, empty, or non-successful metadata response publishes
+`{ active: true, source, available: false }`; fallback display labels are never used as a
+song identity after a failed response. Selecting the main stream or an unsupported stream
+immediately publishes `{ active: false }` and restores normal AzuraCast now-playing voting.
+
+For valid external metadata, `public/embed.js` calls
+`POST /votes/api/external-now-playing` with JSON `{ "artist": "...", "title": "..." }`.
+The resolver normalizes and upserts the song, then returns that listener's existing totals.
+Songs with the same normalized artist and title share the existing
+`meta:artist::title` identity across every stream.
 
 ## Useful Commands
 Start or update:
@@ -144,6 +179,7 @@ Voting remains available when listeners select any stream.
 Behind the `/votes/` proxy:
 - `GET /votes/health`
 - `GET /votes/api/now-playing`
+- `POST /votes/api/external-now-playing` with JSON `{ "artist": "...", "title": "..." }`
 - `POST /votes/api/vote`
 - `GET /votes/api/chat/messages?after=0&limit=50`
 - `POST /votes/api/chat/messages` with JSON `{ "message": "Up to 200 characters" }`

@@ -1,17 +1,19 @@
 (function () {
 "use strict";
 
-const AZURAVOTE_SCRIPT_URL = "/votes/embed.js?v=9";
+const AZURAVOTE_SCRIPT_URL = "/votes/embed.js?v=10";
 const REMOTE_METADATA_INTERVAL_MS = 10000;
 
 const REMOTE_METADATA_SOURCES = [
 {
+id: "loops-radio",
 streamUrlContains: "progressive.ozelip.com/7670/stream",
 metadataUrl: "/loopsradio-metadata",
 fallbackArtist: "Loops Radio",
 fallbackTitle: "Unknown programme"
 },
 {
+id: "yoga-chill",
 streamUrlContains: "radio4.vip-radios.fm:18027",
 metadataUrl: "/yogachill-metadata",
 fallbackArtist: "Vip-Radios.FM",
@@ -39,6 +41,22 @@ let metadataAbortController = null;
 let activeMetadataSource = null;
 let nativeMetadata = null;
 let metadataOverrideActive = false;
+
+function publishExternalMetadata(payload) {
+window.AZURAVOTE_EXTERNAL_METADATA = payload;
+window.dispatchEvent(new CustomEvent(
+"azuravote:external-metadata",
+{ detail: payload }
+));
+}
+
+function publishMetadataUnavailable(source) {
+publishExternalMetadata({
+active: true,
+source: source.id,
+available: false
+});
+}
 
 function runWhenReady(callback) {
 if (document.readyState === "loading") {
@@ -265,12 +283,21 @@ async function updateMetadata() {
     if (!response.ok) {
       if (getActiveMetadataSource() === source) {
         renderRemoteMetadata(fallbackMetadata);
+        publishMetadataUnavailable(source);
       }
 
       return;
     }
 
     const rawMetadata = await response.text();
+
+    if (!String(rawMetadata || "").replace(/\0/g, "").trim()) {
+      if (getActiveMetadataSource() === source) {
+        renderRemoteMetadata(fallbackMetadata);
+        publishMetadataUnavailable(source);
+      }
+      return;
+    }
 
     const metadata = parseMetadata(
       rawMetadata,
@@ -279,6 +306,13 @@ async function updateMetadata() {
 
     if (getActiveMetadataSource() === source) {
       renderRemoteMetadata(metadata);
+      publishExternalMetadata({
+        active: true,
+        source: source.id,
+        available: true,
+        artist: metadata.artist,
+        title: metadata.title
+      });
     }
   } catch (error) {
     if (error?.name === "AbortError") {
@@ -287,6 +321,7 @@ async function updateMetadata() {
 
     if (getActiveMetadataSource() === source) {
       renderRemoteMetadata(fallbackMetadata);
+      publishMetadataUnavailable(source);
     }
   }
 }  
@@ -318,6 +353,7 @@ const source = getActiveMetadataSource();
 
 if (!source) {
   stopMetadataUpdates(true);
+  publishExternalMetadata({ active: false });
 
   /*
    * AzuraCast may update the main-stream song
@@ -353,6 +389,8 @@ stopMetadataUpdates(false);
 saveNativeMetadata();
 
 activeMetadataSource = source;
+
+publishMetadataUnavailable(source);
 
 updateMetadata();
 

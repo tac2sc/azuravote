@@ -85,7 +85,10 @@
       latestChatId: 0,
       chatResetToken: 0,
       chatPoll: null,
-      playerStarted: false
+      playerStarted: false,
+      externalMode: false,
+      externalIdentity: "",
+      externalRequestToken: 0
     };
 
     var adapter = adapterApi.createPublicPlayerAdapter({
@@ -151,17 +154,83 @@
     }
 
     function loadNowPlaying() {
-      if (!isStationPlayer()) return Promise.resolve();
+      if (!isStationPlayer() || state.externalMode) return Promise.resolve();
       return fetchJson(apiPath("now-playing")).then(function (data) {
+        if (state.externalMode) return;
         state.apiStreamActive = data.stream_active === true;
         state.songKey = data.song && data.song.song_key || "";
         state.votes = data.votes || { upvotes: 0, downvotes: 0, my_vote: null };
         state.voteMessage = "";
         render();
       }).catch(function () {
+        if (state.externalMode) return;
         state.apiStreamActive = false;
         state.voteMessage = text.loadError;
         render();
+      });
+    }
+
+    function disableExternalVoting(message) {
+      state.apiStreamActive = false;
+      state.songKey = "";
+      state.votes = { upvotes: 0, downvotes: 0, my_vote: null };
+      state.voteMessage = message || "";
+      render();
+    }
+
+    function handleExternalMetadata(metadata) {
+      metadata = metadata || {};
+      if (metadata.active !== true) {
+        var wasExternal = state.externalMode;
+        state.externalMode = false;
+        state.externalIdentity = "";
+        state.externalRequestToken += 1;
+        if (wasExternal) {
+          disableExternalVoting("");
+          loadNowPlaying();
+        }
+        return;
+      }
+
+      state.externalMode = true;
+      if (metadata.available !== true) {
+        state.externalIdentity = "";
+        state.externalRequestToken += 1;
+        disableExternalVoting("");
+        return;
+      }
+
+      var sourceId = String(metadata.source || "").trim();
+      var artist = String(metadata.artist || "").trim();
+      var title = String(metadata.title || "").trim();
+      if (!sourceId || !artist || !title) {
+        state.externalIdentity = "";
+        state.externalRequestToken += 1;
+        disableExternalVoting("");
+        return;
+      }
+
+      var identity = sourceId + "\u0000" + artist + "\u0000" + title;
+      if (identity === state.externalIdentity) return;
+      state.externalIdentity = identity;
+      state.externalRequestToken += 1;
+      var requestToken = state.externalRequestToken;
+      disableExternalVoting("");
+
+      fetchJson(apiPath("external-now-playing"), {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ artist: artist, title: title })
+      }).then(function (data) {
+        if (!state.externalMode || requestToken !== state.externalRequestToken || identity !== state.externalIdentity) return;
+        state.apiStreamActive = true;
+        state.songKey = data.song && data.song.song_key || "";
+        state.votes = data.votes || { upvotes: 0, downvotes: 0, my_vote: null };
+        state.voteMessage = "";
+        render();
+      }).catch(function () {
+        if (!state.externalMode || requestToken !== state.externalRequestToken || identity !== state.externalIdentity) return;
+        disableExternalVoting(text.loadError);
       });
     }
 
@@ -291,6 +360,15 @@
       });
     }
 
+    function onExternalMetadata(event) {
+      handleExternalMetadata(event.detail);
+    }
+
+    window.addEventListener("azuravote:external-metadata", onExternalMetadata);
+    if (window.AZURAVOTE_EXTERNAL_METADATA) {
+      handleExternalMetadata(window.AZURAVOTE_EXTERNAL_METADATA);
+    }
+
     adapter.install({
       onVote: submitVote,
       onRatingsToggle: toggleRatings,
@@ -317,6 +395,7 @@
     var nowPlayingPoll = window.setInterval(loadNowPlaying, 15000);
     window.addEventListener("beforeunload", function () {
       window.clearInterval(nowPlayingPoll);
+      window.removeEventListener("azuravote:external-metadata", onExternalMetadata);
       stopChatPolling();
       unobserve();
       adapter.dispose();

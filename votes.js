@@ -1,4 +1,7 @@
 const crypto = require("crypto");
+const { normalizeSong, normalizeText } = require("./azuracast");
+
+const EXTERNAL_METADATA_MAX_LENGTH = 200;
 
 function getClientIp(req) {
   const forwardedFor = req.headers?.["x-forwarded-for"];
@@ -49,6 +52,12 @@ function createVotingService(store, azuracastClient) {
       throw error;
     }
 
+    let song = songKey ? store.getSongByKey(songKey) : null;
+    if (song) {
+      store.voteOnSong(song.id, voterHash, voteValue, voterIp);
+      return { song, votes: store.getVoteTotals(song.id, voterHash), streamActive: true };
+    }
+
     const current = await currentSong();
     if (!current.ok) {
       const error = new Error(current.error || "Unable to load current song");
@@ -61,21 +70,35 @@ function createVotingService(store, azuracastClient) {
       throw error;
     }
 
-    let song = songKey ? store.getSongByKey(songKey) : null;
-    if (!song) {
-      if (songKey && current.song.song_key !== songKey) {
-        const error = new Error("Unknown song");
-        error.status = 404;
-        throw error;
-      }
-      song = current.song;
+    if (songKey && current.song.song_key !== songKey) {
+      const error = new Error("Unknown song");
+      error.status = 404;
+      throw error;
     }
+    song = current.song;
 
     store.voteOnSong(song.id, voterHash, voteValue, voterIp);
     return { song, votes: store.getVoteTotals(song.id, voterHash), streamActive: true };
   }
 
-  return { currentSong, submitVote };
+  function resolveExternalSong({ artist, title, voterHash }) {
+    const rawArtist = typeof artist === "string" ? artist : "";
+    const rawTitle = typeof title === "string" ? title : "";
+    const normalizedArtist = normalizeText(rawArtist);
+    const normalizedTitle = normalizeText(rawTitle);
+    if (!normalizedArtist || !normalizedTitle ||
+        Array.from(rawArtist).length > EXTERNAL_METADATA_MAX_LENGTH ||
+        Array.from(rawTitle).length > EXTERNAL_METADATA_MAX_LENGTH) {
+      const error = new Error("Artist and title must each be between 1 and 200 characters");
+      error.status = 400;
+      throw error;
+    }
+
+    const song = store.upsertSong(normalizeSong({ song: { artist: normalizedArtist, title: normalizedTitle } }));
+    return { song, votes: store.getVoteTotals(song.id, voterHash) };
+  }
+
+  return { currentSong, submitVote, resolveExternalSong };
 }
 
 module.exports = { createVotingService, getClientIp, getVoterHash, sanitizeSong };
