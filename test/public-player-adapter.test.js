@@ -297,6 +297,12 @@ test("public embed loads chat on open, posts, and stops polling on close", async
   await new Promise((resolve) => setImmediate(resolve));
   await new Promise((resolve) => setImmediate(resolve));
 
+  const streamSelect = dom.window.document.querySelector("select");
+  streamSelect.selectedIndex = 1;
+  streamSelect.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(dom.window.document.getElementById("azsv-song-vote-overlay").hidden, false);
+
   dom.window.document.getElementById("azsv-chat-link").click();
   await new Promise((resolve) => setImmediate(resolve));
   const panel = dom.window.document.getElementById("azsv-chat-panel");

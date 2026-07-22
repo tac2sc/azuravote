@@ -106,7 +106,10 @@
     }
 
     function voteUiVisible() {
-      return isStationPlayer() && state.snapshot.mainStreamSelected && state.apiStreamActive;
+      return isStationPlayer()
+        // Voting applies to every selectable stream.
+        // && state.snapshot.mainStreamSelected
+        && state.apiStreamActive;
     }
 
     function render() {
