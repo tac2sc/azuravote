@@ -53,29 +53,26 @@ function createVotingService(store, azuracastClient) {
     }
 
     let song = songKey ? store.getSongByKey(songKey) : null;
-    if (song) {
-      store.voteOnSong(song.id, voterHash, voteValue, voterIp);
-      return { song, votes: store.getVoteTotals(song.id, voterHash), streamActive: true };
-    }
+    if (!song) {
+      const current = await currentSong();
+      if (!current.ok) {
+        const error = new Error(current.error || "Unable to load current song");
+        error.status = 503;
+        throw error;
+      }
+      if (current.streamActive === false) {
+        const error = new Error("Main stream is not active");
+        error.status = 409;
+        throw error;
+      }
 
-    const current = await currentSong();
-    if (!current.ok) {
-      const error = new Error(current.error || "Unable to load current song");
-      error.status = 503;
-      throw error;
+      if (songKey && current.song.song_key !== songKey) {
+        const error = new Error("Unknown song");
+        error.status = 404;
+        throw error;
+      }
+      song = current.song;
     }
-    if (current.streamActive === false) {
-      const error = new Error("Main stream is not active");
-      error.status = 409;
-      throw error;
-    }
-
-    if (songKey && current.song.song_key !== songKey) {
-      const error = new Error("Unknown song");
-      error.status = 404;
-      throw error;
-    }
-    song = current.song;
 
     store.voteOnSong(song.id, voterHash, voteValue, voterIp);
     return { song, votes: store.getVoteTotals(song.id, voterHash), streamActive: true };

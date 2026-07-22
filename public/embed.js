@@ -178,25 +178,34 @@
       render();
     }
 
+    function invalidateExternalMetadata(message) {
+      state.externalIdentity = "";
+      state.externalRequestToken += 1;
+      disableExternalVoting(message);
+    }
+
+    function externalRequestIsCurrent(requestToken, identity) {
+      return state.externalMode && requestToken === state.externalRequestToken && identity === state.externalIdentity;
+    }
+
     function handleExternalMetadata(metadata) {
       metadata = metadata || {};
       if (metadata.active !== true) {
         var wasExternal = state.externalMode;
         state.externalMode = false;
-        state.externalIdentity = "";
-        state.externalRequestToken += 1;
         if (wasExternal) {
-          disableExternalVoting("");
+          invalidateExternalMetadata("");
           loadNowPlaying();
+        } else {
+          state.externalIdentity = "";
+          state.externalRequestToken += 1;
         }
         return;
       }
 
       state.externalMode = true;
       if (metadata.available !== true) {
-        state.externalIdentity = "";
-        state.externalRequestToken += 1;
-        disableExternalVoting("");
+        invalidateExternalMetadata("");
         return;
       }
 
@@ -204,9 +213,7 @@
       var artist = String(metadata.artist || "").trim();
       var title = String(metadata.title || "").trim();
       if (!sourceId || !artist || !title) {
-        state.externalIdentity = "";
-        state.externalRequestToken += 1;
-        disableExternalVoting("");
+        invalidateExternalMetadata("");
         return;
       }
 
@@ -222,14 +229,14 @@
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ artist: artist, title: title })
       }).then(function (data) {
-        if (!state.externalMode || requestToken !== state.externalRequestToken || identity !== state.externalIdentity) return;
+        if (!externalRequestIsCurrent(requestToken, identity)) return;
         state.apiStreamActive = true;
         state.songKey = data.song && data.song.song_key || "";
         state.votes = data.votes || { upvotes: 0, downvotes: 0, my_vote: null };
         state.voteMessage = "";
         render();
       }).catch(function () {
-        if (!state.externalMode || requestToken !== state.externalRequestToken || identity !== state.externalIdentity) return;
+        if (!externalRequestIsCurrent(requestToken, identity)) return;
         disableExternalVoting(text.loadError);
       });
     }

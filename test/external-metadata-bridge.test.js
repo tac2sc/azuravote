@@ -75,6 +75,18 @@ test("custom public JS publishes unavailable metadata for empty and failed respo
   assert.deepEqual(plain(fixture.dom.window.AZURAVOTE_EXTERNAL_METADATA), plain(fixture.events.at(-1)));
 });
 
+test("custom public JS never publishes fallback display labels as voting metadata", async () => {
+  const fixture = bridgeFixture("https://progressive.ozelip.com/7670/stream", async () => ({
+    ok: true,
+    async text() { return "Title without an artist"; },
+  }));
+  await flush();
+
+  assert.deepEqual(plain(fixture.events.at(-1)), { active: true, source: "loops-radio", available: false });
+  assert.equal(fixture.dom.window.document.querySelector(".now-playing-artist").textContent, "Loops Radio");
+  assert.equal(fixture.dom.window.document.querySelector(".now-playing-title").textContent, "Unknown programme");
+});
+
 test("custom public JS identifies source switches and immediately publishes inactive on main-stream return", async () => {
   const fixture = bridgeFixture("https://progressive.ozelip.com/7670/stream", async (url) => ({
     ok: true,

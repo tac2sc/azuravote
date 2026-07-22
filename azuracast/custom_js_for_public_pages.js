@@ -58,6 +58,18 @@ available: false
 });
 }
 
+function renderMetadataUnavailable(source) {
+if (getActiveMetadataSource() !== source) {
+return;
+}
+
+renderRemoteMetadata({
+artist: source.fallbackArtist,
+title: source.fallbackTitle
+});
+publishMetadataUnavailable(source);
+}
+
 function runWhenReady(callback) {
 if (document.readyState === "loading") {
 document.addEventListener(
@@ -150,36 +162,32 @@ return (
 
 }
 
-function parseMetadata(rawValue, source) {
+function parseMetadata(rawValue) {
 const raw = String(rawValue || "")
 .replace(/\0/g, "")
 .replace(/\s+/g, " ")
 .trim();
 
 if (!raw) {
-  return {
-    artist: source.fallbackArtist,
-    title: source.fallbackTitle
-  };
+  return null;
 }
 
 const separatorIndex = raw.indexOf(" - ");
 
 if (separatorIndex === -1) {
-  return {
-    artist: source.fallbackArtist,
-    title: raw
-  };
+  return null;
+}
+
+const artist = raw.slice(0, separatorIndex).trim();
+const title = raw.slice(separatorIndex + 3).trim();
+
+if (!artist || !title) {
+  return null;
 }
 
 return {
-  artist:
-    raw.slice(0, separatorIndex).trim() ||
-    source.fallbackArtist,
-
-  title:
-    raw.slice(separatorIndex + 3).trim() ||
-    source.fallbackTitle
+  artist: artist,
+  title: title
 };
 
 }
@@ -264,11 +272,6 @@ async function updateMetadata() {
 
   metadataAbortController = new AbortController();
 
-  const fallbackMetadata = {
-    artist: source.fallbackArtist,
-    title: source.fallbackTitle
-  };
-
   try {
     const response = await fetch(source.metadataUrl, {
       method: "GET",
@@ -281,28 +284,23 @@ async function updateMetadata() {
     });
 
     if (!response.ok) {
-      if (getActiveMetadataSource() === source) {
-        renderRemoteMetadata(fallbackMetadata);
-        publishMetadataUnavailable(source);
-      }
-
+      renderMetadataUnavailable(source);
       return;
     }
 
     const rawMetadata = await response.text();
 
     if (!String(rawMetadata || "").replace(/\0/g, "").trim()) {
-      if (getActiveMetadataSource() === source) {
-        renderRemoteMetadata(fallbackMetadata);
-        publishMetadataUnavailable(source);
-      }
+      renderMetadataUnavailable(source);
       return;
     }
 
-    const metadata = parseMetadata(
-      rawMetadata,
-      source
-    );
+    const metadata = parseMetadata(rawMetadata);
+
+    if (!metadata) {
+      renderMetadataUnavailable(source);
+      return;
+    }
 
     if (getActiveMetadataSource() === source) {
       renderRemoteMetadata(metadata);
@@ -319,10 +317,7 @@ async function updateMetadata() {
       return;
     }
 
-    if (getActiveMetadataSource() === source) {
-      renderRemoteMetadata(fallbackMetadata);
-      publishMetadataUnavailable(source);
-    }
+    renderMetadataUnavailable(source);
   }
 }  
 
