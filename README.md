@@ -45,7 +45,7 @@ docker compose up -d --build
 cp ./azuracast/* /var/azuracast 
 cd /var/azuracast
 ```
-Now review your AzuraCast docker configuration, and docker compose up -d --build
+Now review your new docker-compose.override.yml for AzuraCast, and ./docker.sh restart
 
 Notes:
 - `PUBLIC_BASE_URL` must be one canonical URL only.
