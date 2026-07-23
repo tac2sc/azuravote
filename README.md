@@ -3,7 +3,7 @@
 
 Small external voting add-on for an existing AzuraCast station.
 
-AzuraVote adds native-looking thumbs-up/thumbs-down controls to the AzuraCast public player, external stream song info, stores listener votes in SQLite, and can optionally sync high/low rated songs into AzuraCast playlists.
+AzuraVote adds native-looking thumbs-up/thumbs-down controls to the AzuraCast public player, external stream song info, stores listener votes in SQLite, and can optionally move high/low rated songs into different AzuraCast playlists.
 
 It does not modify AzuraCast core files.
 ## What It Does
