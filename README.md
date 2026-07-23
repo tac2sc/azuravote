@@ -46,6 +46,7 @@ cp ./azuracast/* /var/azuracast
 cd /var/azuracast
 ```
 Now review your AzuraCast docker configuration, and docker compose up -d --build
+
 Notes:
 - `PUBLIC_BASE_URL` must be one canonical URL only.
 - Put both `http://` and `https://` origins in `CORS_ALLOWED_ORIGINS` if you use both.
