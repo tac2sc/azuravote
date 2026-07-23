@@ -7,21 +7,22 @@ AzuraVote adds native-looking thumbs-up/thumbs-down controls to the AzuraCast pu
 
 It does not modify AzuraCast core files.
 ## What It Does
+<ul>
+  <li>Shows vote buttons inside the AzuraCast public player (embedded also. TODO: better position).</li>
+  <li>Adds an anonymous station chat, hidden until the listener clicks Chat.</li>
+  <li>Allows one vote per listener per song.</li>
+  <li>Lets a listener change their vote.</li>
+  <li>Shows a ratings list for tracks.</li>
+  <li>Stores votes locally in <code>./data/votes.sqlite</code>.</li>
+  <li>Can optionally add highly rated tracks to a high-rotation playlist and low-rated tracks to a low-rotation/excluded playlist.</li>
+</ul>
 
-- Shows vote buttons inside the AzuraCast public player (embedded also. TODO: better position).
-- Adds an anonymous station chat, hidden until the listener clicks Chat.
-- Allows one vote per listener per song.
-- Lets a listener change their vote.
-- Shows a ratings list for tracks.
-- Stores votes locally in `./data/votes.sqlite`.
-- Can optionally add highly rated tracks to a high-rotation playlist and low-rated tracks to a low-rotation/excluded playlist.
+> [!NOTE]
+> **Secure song info fetching/displaying** for external mounted streams (other hosts) via local endpoint. Check out this .gif:
 
-- ⚡Secure song info fetching/displayong for the external mounted streams (other hosts) via local endpoint. Check out this .gif:
- 
 <p align="center">
-<img width="30%" height="30%" alt="chrome_vE2ZPwDnKX" src="https://github.com/user-attachments/assets/e15132fe-a12d-41c0-941b-083b88fd87dc">
+  <img width="40%" height="40%" alt="Demo preview" src="https://github.com/user-attachments/assets/e15132fe-a12d-41c0-941b-083b88fd87dc">
 </p>
-
 
 ## Requirements
 - A working AzuraCast station.
@@ -77,7 +78,7 @@ external-stream metadata updater and loads AzuraVote with this cache-versioned U
   document.head.appendChild(s);
 ...
 
-[!!! edit and paste aazuravote/zuracast/custom_js_for_public_pages.js]
+[!!! edit and paste aazuravote/azuracast/custom_js_for_public_pages.js]
 })();
 ```
 Save, then reload the public station page.
@@ -116,6 +117,11 @@ For valid external metadata, `public/embed.js` calls
 The resolver normalizes and upserts the song, then returns that listener's existing totals.
 Songs with the same normalized artist and title share the existing
 `meta:artist::title` identity across every stream.
+> [!NOTE]
+> If you want to use remote song information, configure only Mount Point URL. It will be streamed directly to player (bypassing AzuraCast).
+  
+> Do **not** fill Relay Stream URL!
+
 
 ## Useful Commands
 Start or update:
@@ -185,7 +191,7 @@ docker compose run --rm azuravote npm run sync:rotation:apply
 ```
 
 ## Important Notes
-Voting remains available when listeners select any stream.
+Voting remains available when listeners select any stream with fresh song information.
 
 <img width="1792" height="675" alt="{8744D799-AD73-4D2A-BFA4-C14C912C3A76}" src="https://github.com/user-attachments/assets/b55ec930-d13e-446c-b664-8efb8b8ec24e" style="width: 50%;"/>
 
