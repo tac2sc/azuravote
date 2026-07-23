@@ -1,4 +1,6 @@
 # AzuraVote
+<img width="1699" height="839" alt="image" src="https://github.com/user-attachments/assets/d3d2f7c2-83a6-4ed8-9564-8517cdf84bfc" style="width: 50%;"/>
+
 Small external voting add-on for an existing AzuraCast station.
 
 AzuraVote adds native-looking thumbs-up/thumbs-down controls to the AzuraCast public player, stores listener votes in SQLite, and can optionally sync high/low rated songs into AzuraCast playlists.
@@ -6,7 +8,7 @@ AzuraVote adds native-looking thumbs-up/thumbs-down controls to the AzuraCast pu
 It does not modify AzuraCast core files.
 ## What It Does
 
-- Shows vote buttons inside the AzuraCast public player.
+- Shows vote buttons inside the AzuraCast public player (embedded also. TODO: better position).
 - Adds an anonymous station chat, hidden until the listener clicks Chat.
 - Allows one vote per listener per song.
 - Lets a listener change their vote.
@@ -14,7 +16,12 @@ It does not modify AzuraCast core files.
 - Stores votes locally in `./data/votes.sqlite`.
 - Can optionally add highly rated tracks to a high-rotation playlist and low-rated tracks to a low-rotation/excluded playlist.
 
-<img width="1699" height="839" alt="image" src="https://github.com/user-attachments/assets/d3d2f7c2-83a6-4ed8-9564-8517cdf84bfc" style="width: 50%;"/>
+- ⚡Secure song info fetching/displayong for the external mounted streams (other hosts) via local endpoint. Check out this .gif:
+ 
+<p align="center">
+<img width="30%" height="30%" alt="chrome_vE2ZPwDnKX" src="https://github.com/user-attachments/assets/e15132fe-a12d-41c0-941b-083b88fd87dc">
+</p>
+
 
 ## Requirements
 - A working AzuraCast station.
@@ -68,6 +75,9 @@ external-stream metadata updater and loads AzuraVote with this cache-versioned U
   s.src = "/votes/embed.js?v=11";
   s.defer = true;
   document.head.appendChild(s);
+...
+
+[!!! edit and paste aazuravote/zuracast/custom_js_for_public_pages.js]
 })();
 ```
 Save, then reload the public station page.
