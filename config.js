@@ -45,6 +45,7 @@ const config = {
   embedScriptPath: process.env.EMBED_SCRIPT_PATH || "/embed.js",
   rateLimitWindowMs: int("RATE_LIMIT_WINDOW_MS", 60000),
   rateLimitMaxVotes: int("RATE_LIMIT_MAX_VOTES", 20),
+  chatEnabled: bool("CHAT_ENABLED", true),
   chatRateLimitWindowMs: int("CHAT_RATE_LIMIT_WINDOW_MS", 60000),
   chatRateLimitMaxMessages: int("CHAT_RATE_LIMIT_MAX_MESSAGES", 1),
 };

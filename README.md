@@ -59,6 +59,7 @@ Notes:
 - `PUBLIC_BASE_URL` must be one canonical URL only.
 - Put both `http://` and `https://` origins in `CORS_ALLOWED_ORIGINS` if you use both.
 - Set either `AZURACAST_STATION_ID`, `AZURACAST_STATION_SHORT_NAME`, or both.
+- Chat is enabled by default with `CHAT_ENABLED=yes`; set it to `no` to hide the player control and disable both chat API endpoints.
 - Do not expose port `3099` directly to the public internet.
 
 ## AzuraCast custom nginx config
@@ -84,7 +85,7 @@ external-stream metadata updater and loads AzuraVote with this cache-versioned U
 ```js
 (function () {
   var s = document.createElement("script");
-  s.src = "/votes/embed.js?v=11";
+  s.src = "/votes/embed.js?v=12";
   s.defer = true;
   document.head.appendChild(s);
 ...
@@ -218,7 +219,7 @@ Behind the `/votes/` proxy:
 - `GET /votes/widget`
 - `GET /votes/embed.js`
 
-Chat nicknames are assigned by the server from the first six characters of the listener's voter hash. Full voter hashes and IP addresses remain internal. Chat posting defaults to one message per minute per client IP; configure it with `CHAT_RATE_LIMIT_WINDOW_MS` and `CHAT_RATE_LIMIT_MAX_MESSAGES`.
+Chat nicknames are assigned by the server from the first six characters of the listener's voter hash. Messages are shown oldest-to-newest with the composer fixed at the bottom; polling follows new messages only while the reader remains near the bottom. Full voter hashes and IP addresses remain internal. Chat posting defaults to one message per minute per client IP; configure it with `CHAT_RATE_LIMIT_WINDOW_MS` and `CHAT_RATE_LIMIT_MAX_MESSAGES`. Set `CHAT_ENABLED=no` to hide Chat and make both chat endpoints return `404`.
 
 ## Troubleshooting
 - `404` on `/votes/health`: the nginx `/votes/` proxy is missing or not loaded.
