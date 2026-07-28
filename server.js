@@ -84,8 +84,13 @@ function createApp({ cfg = config, store, azuracastClient } = {}) {
   const database = store || createStore(openDatabase(cfg.databasePath));
   const client = azuracastClient || new AzuraCastClient(cfg.azuracast);
   const voting = createVotingService(database, client);
+  const requireChatEnabled = (req, res, next) => {
+    if (cfg.chatEnabled === false) return res.status(404).json({ ok: false, error: "Chat is disabled" });
+    return next();
+  };
 
   applySecurity(app, cfg);
+  app.use(withPublicPrefix("/api/chat/messages", cfg), requireChatEnabled);
   app.use(jsonParser(express));
 
   app.get(withPublicPrefix("/health", cfg), (req, res) => {
@@ -104,6 +109,7 @@ function createApp({ cfg = config, store, azuracastClient } = {}) {
     res.json({
       theme: cfg.widgetTheme,
       hidePublicDownvotes: cfg.hidePublicDownvotes,
+      chatEnabled: cfg.chatEnabled !== false,
     });
   });
 

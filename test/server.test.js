@@ -89,6 +89,39 @@ test("embed script route initializes its rate limiter before serving requests", 
   assert.equal(adapterResponse.status, 200);
 });
 
+test("disabled chat is advertised and blocks both public chat endpoints", async (t) => {
+  const cfg = testConfig();
+  cfg.chatEnabled = false;
+  const store = tempStore();
+  const app = createApp({ cfg, store, azuracastClient: {} });
+  const server = app.listen(0);
+  t.after(() => server.close());
+  await new Promise((resolve) => server.once("listening", resolve));
+  const baseUrl = `http://127.0.0.1:${server.address().port}`;
+
+  const configResponse = await fetch(`${baseUrl}/api/config`);
+  const historyResponse = await fetch(`${baseUrl}/api/chat/messages`);
+  const postResponse = await fetch(`${baseUrl}/api/chat/messages`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ message: "must not be stored" }),
+  });
+  const malformedPostResponse = await fetch(`${baseUrl}/api/chat/messages`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: "{",
+  });
+
+  assert.equal((await configResponse.json()).chatEnabled, false);
+  assert.equal(historyResponse.status, 404);
+  assert.deepEqual(await historyResponse.json(), { ok: false, error: "Chat is disabled" });
+  assert.equal(postResponse.status, 404);
+  assert.deepEqual(await postResponse.json(), { ok: false, error: "Chat is disabled" });
+  assert.equal(malformedPostResponse.status, 404);
+  assert.deepEqual(await malformedPostResponse.json(), { ok: false, error: "Chat is disabled" });
+  assert.equal(store.db.prepare("select count(*) as count from chat_messages").get().count, 0);
+});
+
 test("listener can post and read an anonymous chat message", async (t) => {
   const app = createApp({ cfg: testConfig(), store: tempStore(), azuracastClient: {} });
   const server = app.listen(0);

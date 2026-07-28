@@ -133,21 +133,25 @@ test("adapter renders chat as plain text and forwards chat actions", () => {
   });
 
   const panel = dom.window.document.getElementById("azsv-chat-panel");
-  const postingAs = panel.querySelector("[data-posting-as]").parentElement;
   const form = panel.querySelector("form");
   const messages = panel.querySelector("[data-chat-messages]");
+  const error = panel.querySelector("[data-chat-error]");
   assert.equal(panel.hidden, false);
   assert.equal(dom.window.document.getElementById("azsv-chat-link").getAttribute("aria-expanded"), "true");
   assert.equal(panel.querySelector("[data-chat-nickname]").textContent, "a1b2c3");
-  assert.equal(postingAs.nextElementSibling, form);
-  assert.equal(form.nextElementSibling, messages);
+  assert.equal(panel.querySelector("[data-message-label]"), null);
+  assert.equal(panel.querySelector("[data-posting-as]").textContent, "Posting as");
+  assert.equal(form.querySelector("label").textContent.trim(), "Posting as a1b2c3:");
+  assert.equal(messages.nextElementSibling, error);
+  assert.equal(error.nextElementSibling, form);
   assert.equal(panel.querySelector("[data-message-id='7'] [data-chat-body]").textContent, "<img src=x onerror=alert(1)>");
   assert.equal(panel.querySelector("img"), null);
-  assert.deepEqual(Array.from(panel.querySelectorAll(".azsv-chat-message")).map((message) => message.dataset.messageId), ["8", "7"]);
-  assert.equal(panel.querySelector(".azsv-chat-message [data-chat-timestamp]").textContent, "07.17 10:05");
+  assert.deepEqual(Array.from(panel.querySelectorAll(".azsv-chat-message")).map((message) => message.dataset.messageId), ["7", "8"]);
+  assert.equal(panel.querySelector(".azsv-chat-message [data-chat-timestamp]").textContent, "07.17 10:00");
   assert.equal(panel.querySelector(".azsv-chat-message [data-chat-timestamp]").className, "azsv-chat-timestamp");
   assert.match(dom.window.document.getElementById("azsv-player-adapter-style").textContent, /\.azsv-chat-message\{display:grid;grid-template-columns:minmax\(0,1fr\) auto/);
-  assert.match(dom.window.document.getElementById("azsv-player-adapter-style").textContent, /#azsv-chat-panel form\{margin:10px 0 8px\}#azsv-chat-panel input\{padding:4px\}#azsv-chat-panel \[data-chat-submit\]\{padding:4px 9px/);
+  assert.match(dom.window.document.getElementById("azsv-player-adapter-style").textContent, /#azsv-chat-panel\{display:flex;flex-direction:column;overflow:hidden/);
+  assert.match(dom.window.document.getElementById("azsv-player-adapter-style").textContent, /#azsv-chat-panel \[data-chat-messages\]\{flex:1;min-height:0;overflow-y:auto/);
   assert.equal(dom.window.document.getElementById("azsv-song-vote-overlay").style.top, "143px");
 
   const input = panel.querySelector("[data-chat-input]");
@@ -155,6 +159,52 @@ test("adapter renders chat as plain text and forwards chat actions", () => {
   panel.querySelector("form").dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true }));
   panel.querySelector("[data-chat-close]").click();
   assert.deepEqual(events, [["submit", "Hello back"], ["toggle", false]]);
+
+  adapter.dispose();
+});
+
+test("chat follows new messages without interrupting a reader who scrolled up", () => {
+  const dom = playerFixture();
+  const adapter = createPublicPlayerAdapter({ window: dom.window, document: dom.window.document });
+  adapter.install({});
+  const messages = dom.window.document.querySelector("[data-chat-messages]");
+  Object.defineProperty(messages, "clientHeight", { configurable: true, value: 40 });
+  Object.defineProperty(messages, "scrollHeight", {
+    configurable: true,
+    get() { return messages.children.length * 40; },
+  });
+
+  function chat(ids, resetToken = 0, open = true) {
+    adapter.render({
+      chat: {
+        visible: true,
+        open,
+        nickname: "a1b2c3",
+        messages: ids.map((id) => ({ id, nickname: "reader", body: String(id), created_at: "2026-07-17T10:00:00.000Z" })),
+        resetToken,
+      },
+    });
+  }
+
+  chat([1, 2]);
+  assert.equal(messages.scrollTop, 80);
+
+  messages.scrollTop = 0;
+  chat([1, 2, 3]);
+  assert.equal(messages.scrollTop, 0);
+
+  messages.scrollTop = 80;
+  chat([1, 2, 3, 4]);
+  assert.equal(messages.scrollTop, 160);
+
+  messages.scrollTop = 0;
+  chat([1, 2, 3, 4, 5], 1);
+  assert.equal(messages.scrollTop, 200);
+
+  chat([1, 2, 3, 4, 5], 1, false);
+  messages.scrollTop = 0;
+  chat([1, 2, 3, 4, 5], 1, true);
+  assert.equal(messages.scrollTop, 200);
 
   adapter.dispose();
 });
@@ -331,4 +381,40 @@ test("public embed loads chat on open, posts, and stops polling on close", async
   dom.window.dispatchEvent(new dom.window.Event("beforeunload"));
   assert.equal(intervals.size, 0);
   assert.equal(dom.window.document.getElementById("azsv-player-controls"), null);
+});
+
+test("public embed hides disabled chat and never starts chat polling", async () => {
+  const dom = playerFixture();
+  const calls = [];
+  const intervals = new Map();
+  let nextIntervalId = 0;
+  dom.window.AZSV_CONFIG = { apiBase: "https://radio.example/votes/api/" };
+  dom.window.AzuraVotePublicPlayerAdapter = { createPublicPlayerAdapter };
+  dom.window.setInterval = (callback, milliseconds) => {
+    const id = ++nextIntervalId;
+    intervals.set(id, { callback, milliseconds });
+    return id;
+  };
+  dom.window.clearInterval = (id) => intervals.delete(id);
+  dom.window.fetch = async (url) => {
+    calls.push(String(url));
+    const body = String(url).endsWith("/config")
+      ? { hidePublicDownvotes: false, chatEnabled: false }
+      : { stream_active: true, song: { song_key: "song-1" }, votes: { upvotes: 0, downvotes: 0, my_vote: null } };
+    return { ok: true, status: 200, async json() { return body; } };
+  };
+
+  const source = fs.readFileSync(path.join(__dirname, "..", "public", "embed.js"), "utf8");
+  dom.window.eval(source);
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const chatLink = dom.window.document.getElementById("azsv-chat-link");
+  assert.equal(chatLink.hidden, true);
+  chatLink.click();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(calls.some((url) => url.includes("/chat/messages")), false);
+  assert.equal(Array.from(intervals.values()).some((entry) => entry.milliseconds === 5000), false);
+
+  dom.window.dispatchEvent(new dom.window.Event("beforeunload"));
 });

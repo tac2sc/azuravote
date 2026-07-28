@@ -26,6 +26,7 @@
     var installed = false;
     var mutationObserver = null;
     var lastChatResetToken = null;
+    var lastChatOpen = false;
     var boundRefresh = function () { refresh(); };
 
     function label(name, fallback) {
@@ -128,7 +129,7 @@
       style.id = "azsv-player-adapter-style";
       style.textContent = "#azsv-player-controls{position:absolute;z-index:22;top:10px;right:12px;display:flex;gap:6px}#azsv-player-controls button{border:0;border-radius:999px;padding:2px 8px;color:#d1a83a;background:rgba(15,20,28,.66);box-shadow:0 1px 4px rgba(0,0,0,.18);font:inherit;font-size:11px;font-weight:800;line-height:1.35;cursor:pointer}#azsv-player-controls button:hover,#azsv-player-controls button[aria-expanded='true']{color:#f7f3ea;background:rgba(209,168,58,.32)}#azsv-song-vote-overlay{position:absolute;z-index:23;display:flex;align-items:center;gap:7px;color:rgba(247,243,234,.92);font-family:inherit}#azsv-song-vote-overlay button{display:inline-flex;align-items:center;gap:3px;border:0;padding:1px;color:inherit;background:transparent;font:inherit;font-size:12px;font-weight:800;cursor:pointer}#azsv-song-vote-overlay button:disabled{cursor:wait;opacity:.58}#azsv-song-vote-overlay svg{width:13px;height:13px;fill:currentColor;filter:drop-shadow(0 1px 2px rgba(0,0,0,.28))}#azsv-song-vote-overlay [data-vote='1']{color:#4ade80}#azsv-song-vote-overlay [data-vote='-1']{color:#fb7185}#azsv-ratings-panel,#azsv-chat-panel{position:fixed;z-index:31;width:310px;max-height:360px;overflow:auto;padding:12px;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:#1f2430;color:#f7f3ea;box-shadow:0 18px 42px rgba(0,0,0,.34);font-family:inherit;font-size:12px}#azsv-ratings-panel[hidden],#azsv-chat-panel[hidden],#azsv-song-vote-overlay[hidden]{display:none}.azsv-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px;color:#d1a83a}.azsv-panel-head button{border:0;background:transparent;color:rgba(247,243,234,.72);font:inherit;font-size:18px;cursor:pointer}.azsv-chat-message{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;padding:3px 0;border-top:1px solid rgba(255,255,255,.08)}.azsv-chat-message-content{min-width:0;overflow-wrap:anywhere}.azsv-chat-message strong{color:#d1a83a}.azsv-chat-timestamp{align-self:start;color:rgba(247,243,234,.48);font-size:10px;white-space:nowrap}#azsv-chat-panel form{display:flex;align-items:end;gap:6px;margin-top:10px}#azsv-chat-panel label{flex:1}#azsv-chat-panel input{display:block;width:100%;margin-top:4px;padding:6px;border:1px solid rgba(255,255,255,.18);border-radius:5px;color:#f7f3ea;background:rgba(255,255,255,.06)}#azsv-chat-panel [data-chat-submit]{padding:6px 9px;border:0;border-radius:5px;color:#1f2430;background:#d1a83a;font:inherit;font-weight:800;cursor:pointer}@media(max-width:760px){#azsv-ratings-panel,#azsv-chat-panel{right:14px!important;left:14px!important;width:auto;max-height:45vh}}";
       style.textContent += "#azsv-ratings-panel .azsv-ratings-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 9px}#azsv-ratings-panel .azsv-ratings-title{margin:0;color:#d1a83a;font-size:12px;font-weight:900;text-transform:uppercase}#azsv-ratings-panel .azsv-ratings-close{border:0;background:transparent;color:rgba(247,243,234,.72);font:inherit;font-size:18px;line-height:1;cursor:pointer}#azsv-ratings-panel .azsv-ratings-section{margin:10px 0 0}#azsv-ratings-panel .azsv-ratings-section-title{margin:0 0 6px;color:rgba(247,243,234,.58);font-size:11px;font-weight:900;text-transform:uppercase}#azsv-ratings-panel .azsv-ratings-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:7px 0;border-top:1px solid rgba(255,255,255,.08)}#azsv-ratings-panel .azsv-ratings-song{min-width:0}#azsv-ratings-panel .azsv-ratings-main{overflow-wrap:anywhere;font-size:12px;font-weight:800}#azsv-ratings-panel .azsv-ratings-sub{margin-top:2px;color:rgba(247,243,234,.62);font-size:11px;overflow-wrap:anywhere}#azsv-ratings-panel .azsv-ratings-score{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:900;white-space:nowrap}#azsv-ratings-panel .azsv-rating-up{color:#4ade80}#azsv-ratings-panel .azsv-rating-down{color:#fb7185}#azsv-ratings-panel .azsv-ratings-empty{margin:8px 0;color:rgba(247,243,234,.62);font-size:12px}";
-      style.textContent += "#azsv-chat-panel form{margin:10px 0 8px}#azsv-chat-panel input{padding:4px}#azsv-chat-panel [data-chat-submit]{padding:4px 9px}";
+      style.textContent += "#azsv-chat-panel{display:flex;flex-direction:column;overflow:hidden}#azsv-chat-panel [data-chat-messages]{flex:1;min-height:0;overflow-y:auto}#azsv-chat-panel form{flex:none;margin:8px 0 0}#azsv-chat-panel input{padding:4px}#azsv-chat-panel [data-chat-submit]{padding:4px 9px}";
       doc.head.appendChild(style);
     }
 
@@ -186,11 +187,10 @@
         chat.id = "azsv-chat-panel";
         chat.hidden = true;
         chat.setAttribute("aria-label", label("chatTitle", "Station chat"));
-        chat.innerHTML = "<div class='azsv-panel-head'><strong data-chat-title></strong><button type='button' data-chat-close>x</button></div><p><span data-posting-as></span> <strong data-chat-nickname></strong></p><form><label><span data-message-label></span> <input data-chat-input maxlength='200' autocomplete='off'></label><button type='submit' data-chat-submit></button></form><div data-chat-messages aria-live='polite'></div><p data-chat-error role='status'></p>";
+        chat.innerHTML = "<div class='azsv-panel-head'><strong data-chat-title></strong><button type='button' data-chat-close>x</button></div><div data-chat-messages aria-live='polite'></div><p data-chat-error role='status'></p><form><label><span data-posting-as></span> <strong data-chat-nickname></strong>: <input data-chat-input maxlength='200' autocomplete='off'></label><button type='submit' data-chat-submit></button></form>";
         chat.querySelector("[data-chat-title]").textContent = label("chatTitle", "Station chat");
         chat.querySelector("[data-chat-close]").setAttribute("aria-label", label("closeChat", "Close chat"));
         chat.querySelector("[data-posting-as]").textContent = label("postingAs", "Posting as");
-        chat.querySelector("[data-message-label]").textContent = label("message", "Message");
         chat.querySelector("[data-chat-submit]").textContent = label("send", "Send");
         chat.querySelector("[data-chat-close]").addEventListener("click", function () {
           if (actions.onChatToggle) actions.onChatToggle(false);
@@ -301,15 +301,17 @@
       var panel = doc.getElementById("azsv-chat-panel");
       if (!link || !panel) return;
       model = model || {};
+      var messages = panel.querySelector("[data-chat-messages]");
+      var wasOpen = lastChatOpen;
+      var wasNearBottom = messages.scrollHeight - messages.scrollTop - messages.clientHeight <= 24;
       link.hidden = model.visible === false;
       link.setAttribute("aria-expanded", String(!!model.open));
       panel.hidden = !model.open;
       panel.querySelector("[data-chat-nickname]").textContent = model.nickname || "";
       panel.querySelector("[data-chat-error]").textContent = model.error || "";
 
-      var messages = panel.querySelector("[data-chat-messages]");
       messages.replaceChildren();
-      (model.messages || []).slice().reverse().forEach(function (message) {
+      (model.messages || []).forEach(function (message) {
         var item = doc.createElement("article");
         item.className = "azsv-chat-message";
         item.dataset.messageId = String(message.id);
@@ -336,12 +338,15 @@
 
       var input = panel.querySelector("[data-chat-input]");
       var submit = panel.querySelector("[data-chat-submit]");
-      if (model.resetToken !== undefined && model.resetToken !== lastChatResetToken) {
+      var resetChanged = model.resetToken !== undefined && model.resetToken !== lastChatResetToken;
+      if (resetChanged) {
         input.value = "";
         lastChatResetToken = model.resetToken;
       }
       input.disabled = !!model.pending;
       submit.disabled = !!model.pending;
+      if (model.open && (!wasOpen || resetChanged || wasNearBottom)) messages.scrollTop = messages.scrollHeight;
+      lastChatOpen = !!model.open;
     }
 
     function renderVoting(model) {

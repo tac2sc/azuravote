@@ -76,6 +76,7 @@
       ratingsLoading: false,
       ratingsError: "",
       ratingSections: [],
+      chatEnabled: false,
       chatOpen: false,
       chatLoaded: false,
       chatPending: false,
@@ -135,8 +136,8 @@
           error: state.ratingsError
         },
         chat: {
-          visible: isStationPlayer(),
-          open: isStationPlayer() && state.chatOpen,
+          visible: isStationPlayer() && state.chatEnabled,
+          open: isStationPlayer() && state.chatEnabled && state.chatOpen,
           nickname: state.chatNickname,
           messages: state.chatMessages,
           pending: state.chatPending,
@@ -149,6 +150,11 @@
     function loadConfig() {
       return fetchJson(apiPath("config")).then(function (config) {
         state.hideDownvotes = !!config.hidePublicDownvotes;
+        state.chatEnabled = config.chatEnabled !== false;
+        if (!state.chatEnabled) {
+          state.chatOpen = false;
+          stopChatPolling();
+        }
         render();
       }).catch(function () {});
     }
@@ -305,7 +311,7 @@
     }
 
     function loadChat(initial) {
-      if (!state.chatOpen) return Promise.resolve();
+      if (!state.chatEnabled || !state.chatOpen) return Promise.resolve();
       var query = initial || !state.chatLoaded ? "?limit=50" : "?after=" + state.latestChatId + "&limit=100";
       return fetchJson(apiPath("chat/messages" + query)).then(function (data) {
         state.chatNickname = data.nickname || state.chatNickname;
@@ -331,6 +337,12 @@
     }
 
     function toggleChat(open) {
+      if (!state.chatEnabled) {
+        state.chatOpen = false;
+        stopChatPolling();
+        render();
+        return;
+      }
       state.chatOpen = !!open;
       if (state.chatOpen) {
         state.ratingsOpen = false;
@@ -349,7 +361,7 @@
         render();
         return;
       }
-      if (state.chatPending || !state.chatOpen) return;
+      if (state.chatPending || !state.chatEnabled || !state.chatOpen) return;
       state.chatPending = true;
       state.chatError = "";
       render();
