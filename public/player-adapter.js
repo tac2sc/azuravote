@@ -151,7 +151,10 @@
           if (actions.onChatToggle) actions.onChatToggle(controls.querySelector("#azsv-chat-link").getAttribute("aria-expanded") !== "true");
         });
       }
-      if (controls.parentNode !== panel) panel.appendChild(controls);
+      var controlsParent = panel.querySelector(".radio-player-widget");
+      controlsParent = controlsParent && controlsParent.closest(".card");
+      if (!controlsParent || !panel.contains(controlsParent)) controlsParent = panel;
+      if (controls.parentNode !== controlsParent) controlsParent.appendChild(controls);
 
       var voting = doc.getElementById("azsv-song-vote-overlay");
       if (!voting) {

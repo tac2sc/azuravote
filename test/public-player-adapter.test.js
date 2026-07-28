@@ -23,6 +23,34 @@ function playerFixture() {
   return dom;
 }
 
+function responsivePublicPlayerFixture(orientation) {
+  const dom = new JSDOM(`<!doctype html><html><head></head><body class="page-station-public-player">
+    <div id="public-radio-player">
+      <div class="public-page">
+        <div class="card">
+          <div class="card-body">
+            <div class="radio-player-widget"><div class="now-playing-main"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body></html>`, { url: "https://radio.example/public/station", runScripts: "outside-only" });
+  const landscape = orientation === "landscape";
+  const publicPage = dom.window.document.querySelector(".public-page");
+  const card = dom.window.document.querySelector(".card");
+  const widget = dom.window.document.querySelector(".radio-player-widget");
+  publicPage.getBoundingClientRect = () => landscape
+    ? ({ left: 93.5, top: 21, right: 750.5, bottom: 369, width: 657, height: 348 })
+    : ({ left: 31.5, top: 21, right: 358.5, bottom: 823, width: 327, height: 802 });
+  card.getBoundingClientRect = () => landscape
+    ? ({ left: 172, top: 71, right: 672, bottom: 319, width: 500, height: 248 })
+    : ({ left: 46.5, top: 260.7, right: 343.5, bottom: 583.3, width: 297, height: 322.6 });
+  widget.getBoundingClientRect = () => landscape
+    ? ({ left: 186, top: 123.5, right: 658, bottom: 247, width: 472, height: 123.5 })
+    : ({ left: 60.5, top: 311.5, right: 329.5, bottom: 467.3, width: 269, height: 155.8 });
+  return { dom, card };
+}
+
 function embeddedPlayerFixture() {
   const dom = new JSDOM(`<!doctype html><html><head></head><body class="embed-player">
     <div class="radio-player-widget layout-horizontal">
@@ -310,6 +338,19 @@ test("adapter classifies and positions a portrait mobile player", () => {
   assert.equal(dom.window.document.getElementById("azsv-chat-panel").style.left, "14px");
   adapter.dispose();
 });
+
+for (const orientation of ["portrait", "landscape"]) {
+  test(`adapter uses the player card as the ${orientation} controls containing block`, () => {
+    const { dom, card } = responsivePublicPlayerFixture(orientation);
+    const adapter = createPublicPlayerAdapter({ window: dom.window, document: dom.window.document });
+
+    adapter.install({});
+
+    assert.equal(dom.window.document.getElementById("azsv-player-controls").parentNode, card);
+
+    adapter.dispose();
+  });
+}
 
 test("public embed loads chat on open, posts, and stops polling on close", async () => {
   const dom = playerFixture();
