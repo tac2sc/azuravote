@@ -19,10 +19,10 @@ It does not modify AzuraCast core files.
   <li>Stores votes locally in <code>./data/votes.sqlite</code>.</li>
   <li>Can optionally add highly rated tracks to a high-rotation playlist and low-rated tracks to a low-rotation/excluded playlist.</li>
   <li>Secure anonymous chat (can be disabled)</li>
+  <li><b>Secure song info fetching/displaying</b> for external mounted streams (other hosts) via local endpoint. Check out this .gif:</li>
 </ul>
 
-> [!NOTE]
-> **Secure song info fetching/displaying** for external mounted streams (other hosts) via local endpoint. Check out this .gif:
+
 
 <p align="center">
   <img width="40%" height="40%" alt="Demo preview" src="https://github.com/user-attachments/assets/e15132fe-a12d-41c0-941b-083b88fd87dc">
