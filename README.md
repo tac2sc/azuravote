@@ -48,13 +48,19 @@ docker compose up -d --build
 cp ./azuracast/* /var/azuracast 
 cd /var/azuracast
 ```
-Now review your new docker-compose.override.yml for AzuraCast, and ./docker.sh restart
+Now review your new docker-compose.override.yml for AzuraCast, and run 
+```
+./docker.sh restart
+```
+to restart AzuraCast with an additional configuration.
+
 
 Notes:
 - `PUBLIC_BASE_URL` must be one canonical URL only.
 - Put both `http://` and `https://` origins in `CORS_ALLOWED_ORIGINS` if you use both.
 - Set either `AZURACAST_STATION_ID`, `AZURACAST_STATION_SHORT_NAME`, or both.
 - Do not expose port `3099` directly to the public internet.
+
 ## AzuraCast custom nginx config
 ```nginx
 location ^~ /votes/ {
