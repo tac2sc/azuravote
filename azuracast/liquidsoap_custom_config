@@ -1,4 +1,4 @@
-# If you want to add small text add in the end of each song (song name/artist will be raplaced for adv_sec seconds)
+# If you want to add small text AD in the end of each song (song name/artist will be raplaced for adv_sec seconds)
 # then alter your custom liquidsoap config
 
 # AzuraCast station custom configuration: Pre-Fade section (№3)
