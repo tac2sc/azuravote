@@ -1,3 +1,6 @@
+# If you want to add small text add in the end of each song (song name/artist will be raplaced for adv_sec seconds)
+# then alter your custom liquidsoap config
+
 # AzuraCast station custom configuration: Pre-Fade section (№3)
 # Apply this content through Station Profile -> Broadcasting -> Edit Liquidsoap Configuration.
 # AzuraCast stores this section as `backend_config.custom_config` and generates liquidsoap.liq from it.
@@ -13,70 +16,52 @@ advert_input = radio
 # immediately before Icecast and HLS outputs. Do not add it to the generated
 # liquidsoap.liq file directly.
 
-# Outgoing metadata advert for eligible AutoDJ tracks.
 advert_output = radio
 
-advert_show_before_end_seconds = 10.
-advert_artist = "AzuraVote"
-advert_title = "Vote for songs at https://jam5.uk"
+# Configuration
+adv_sec = 3.
+adv_meta = [("artist", "AzuraVote"), ("title", "Vote for songs at https://jam5.uk")]
 
-advert_current_song_id = ref("")
-advert_current_sq_id = ref("")
-advert_fired = ref(false)
+# State Tracking: Bundling song_id and sq_id into a single tuple, plus the fired boolean
+adv_state = ref(("", "")) 
+adv_fired = ref(false)
 
-def advert_metadata_value(metadata, key) =
-    list.assoc(default="", key, metadata)
+# Helper to safely fetch metadata values
+def get_val(m, k) = list.assoc(default="", k, m) end
+
+# 1. Track new song occurrences
+def on_new_track(m) =
+    adv_state := (get_val(m, "song_id"), get_val(m, "sq_id"))
+    adv_fired := false
 end
 
-# Track the current AutoDJ queue occurrence. Do not restore output metadata
-# from this pre-crossfade source: it can run ahead of audible output.
-def remember_advert_track(metadata) =
-    advert_current_song_id := advert_metadata_value(metadata, "song_id")
-    advert_current_sq_id := advert_metadata_value(metadata, "sq_id")
-    advert_fired := false
-end
+# 2. Trigger advert near the end of the track
+# FIX: Added 'position' as the first argument as required by on_position
+def on_track_end(position, m) =
+    let (tgt_song, tgt_sq) = (get_val(m, "song_id"), get_val(m, "sq_id"))
+    let (cur_song, cur_sq) = !adv_state
+    
+    # Safely extract the final output metadata
+    last_meta = advert_output.last_metadata()
+    out_meta = if null.defined(last_meta) then null.get(last_meta) else [] end
 
-# Require the final source to still be broadcasting this exact AutoDJ
-# occurrence. Missing final metadata is deliberately ineligible.
-def final_output_matches_advert_track(song_id, sq_id) =
-    final_metadata = advert_output.last_metadata()
-    if null.defined(final_metadata) then
-        output_metadata = null.get(final_metadata)
-        advert_metadata_value(output_metadata, "song_id") == song_id and
-            advert_metadata_value(output_metadata, "sq_id") == sq_id
-    else
-        false
+    # Ensure valid track, state matches, and advert hasn't fired yet
+    if tgt_song != "" and tgt_song == cur_song and tgt_sq == cur_sq and not !adv_fired then
+        # Ensure the final output is actually playing this track right now
+        if get_val(out_meta, "song_id") == tgt_song and get_val(out_meta, "sq_id") == tgt_sq then
+            adv_fired := true
+            advert_output.insert_metadata(new_track=false, adv_meta)
+        end
     end
 end
 
-def show_end_metadata_advert(position, metadata) =
-    song_id = advert_metadata_value(metadata, "song_id")
-    sq_id = advert_metadata_value(metadata, "sq_id")
-
-    if song_id != "" and sq_id != "" and
-        song_id == advert_current_song_id() and
-        sq_id == advert_current_sq_id() and
-        not advert_fired() and
-        final_output_matches_advert_track(song_id, sq_id)
-    then
-        # Do not create an artificial boundary or expose internal IDs.
-        advert_fired := true
-        advert_output.insert_metadata(
-            new_track=false,
-            [("artist", advert_artist), ("title", advert_title)]
-        )
-    end
-end
-
-source.methods(advert_input).on_track(
-    synchronous=false,
-    remember_advert_track
-)
-
-source.methods(advert_input).on_position(
-    position=advert_show_before_end_seconds,
-    remaining=true,
-    allow_partial=false,
-    synchronous=false,
-    show_end_metadata_advert
+# Bind the methods to the input source
+in_methods = source.methods(advert_input)
+in_methods.on_track(synchronous=false, on_new_track)
+in_methods.on_position(
+    position=adv_sec, 
+    remaining=true, 
+    allow_partial=false, 
+    synchronous=false, 
+    on_track_end
 )
