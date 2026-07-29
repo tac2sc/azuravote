@@ -1,7 +1,12 @@
-# AzuraCast station custom configuration: Pre-Broadcast section.
+# AzuraCast station custom configuration: Pre-Fade section (№3)
+# Apply this content through Station Profile -> Broadcasting -> Edit Liquidsoap Configuration.
+# AzuraCast stores this section as `backend_config.custom_config` and generates liquidsoap.liq from it.
+
+advert_input = radio
+
+# Pre-Broadcast section (№4)
 #
-# Apply this content through Station Profile -> Broadcasting ->
-# Edit Liquidsoap Configuration. AzuraCast stores this section as
+# AzuraCast stores this section as
 # `backend_config.custom_config` and generates liquidsoap.liq from it.
 #
 # This block runs after AzuraCast metadata feedback and jingle-mode handling,
