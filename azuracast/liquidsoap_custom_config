@@ -1,8 +1,9 @@
 # If you want to add small text AD in the end of each song (song name/artist will be raplaced for adv_sec seconds)
 # then alter your custom liquidsoap config.
 
-# QUESTION: Is there an easy way to omit contaminating last played history???
-
+# Use cron to remove advert from song_history  (every minute)
+# crontab -e
+# * * * * * cd /var/azuracast && nice -n 19 /usr/bin/docker compose exec -T web mariadb -uazuracast -p'PASSWORD' azuracast -e "DELETE FROM song_history WHERE station_id = 1 AND artist = 'AzuraVote'; SELECT ROW_COUNT() AS deleted_rows;"
 
 # AzuraCast station custom configuration: Pre-Fade section (№3)
 # Apply this content through Station Profile -> Broadcasting -> Edit Liquidsoap Configuration.
