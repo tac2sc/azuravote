@@ -219,7 +219,7 @@ Behind the `/votes/` proxy:
 - `GET /votes/widget`
 - `GET /votes/embed.js`
 
-Chat nicknames are assigned by the server from the first six characters of the listener's voter hash. Messages are shown oldest-to-newest with the composer fixed at the bottom; polling follows new messages only while the reader remains near the bottom. Full voter hashes and IP addresses remain internal. Chat posting defaults to one message per minute per client IP; configure it with `CHAT_RATE_LIMIT_WINDOW_MS` and `CHAT_RATE_LIMIT_MAX_MESSAGES`. Set `CHAT_ENABLED=no` to hide Chat and make both chat endpoints return `404`.
+Chat nicknames are assigned by the server from the first six characters of the listener's voter hash. Messages are shown oldest-to-newest with the composer fixed at the bottom; polling follows new messages only while the reader remains near the bottom. Full voter hashes and IP addresses remain internal. Chat posting defaults to one message per minute per client IP; configure it with `CHAT_RATE_LIMIT_WINDOW_MS` and `CHAT_RATE_LIMIT_MAX_MESSAGES`. Set `CHAT_ENABLED=false` to hide Chat and make both chat endpoints return `404`.
 
 ## Troubleshooting
 - `404` on `/votes/health`: the nginx `/votes/` proxy is missing or not loaded.
