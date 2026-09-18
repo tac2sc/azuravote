@@ -34,7 +34,6 @@ It does not modify AzuraCast core files.
 - Access to `Station -> Public Pages -> Branding -> Custom JS for Public Pages`.
 
 ## Install
-From the project folder:
 ```sh
 git clone https://github.com/tac2sc/azuravote
 cd ./azuravote
