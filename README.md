@@ -18,7 +18,7 @@ It does not modify AzuraCast core files.
   <li>Shows a ratings list for tracks.</li>
   <li>Stores votes locally in <code>./data/votes.sqlite</code>.</li>
   <li>Can optionally add highly rated tracks to a high-rotation playlist and low-rated tracks to a low-rotation/excluded playlist.</li>
-  <li><b>Secure song info fetching/displaying</b> for external mounted streams (other hosts) via local endpoint. Check out this .gif:</li>
+  <li><b>Secure song info fetching/displaying</b> for external mounted streams (other hosts) via local endpoint. Click this .gif:</li>
 </ul>
 
 
