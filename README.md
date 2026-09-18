@@ -59,7 +59,7 @@ Notes:
 - `PUBLIC_BASE_URL` must be one canonical URL only.
 - Put both `http://` and `https://` origins in `CORS_ALLOWED_ORIGINS` if you use both.
 - Set either `AZURACAST_STATION_ID`, `AZURACAST_STATION_SHORT_NAME`, or both.
-- Chat is enabled by default with `CHAT_ENABLED=yes`; set it to `no` to hide the player control and disable both chat API endpoints.
+- Chat is enabled by default with `CHAT_ENABLED=true`; set it to `false` to hide the player control and disable both chat API endpoints.
 - Do not expose port `3099` directly to the public internet.
 
 ## AzuraCast custom nginx config
