@@ -12,13 +12,12 @@ It does not modify AzuraCast core files.
 ## What It Does
 <ul>
   <li>Shows vote buttons inside the AzuraCast public player (embedded also. TODO: better position).</li>
-  <li>Adds an anonymous station chat, hidden until the listener clicks Chat.</li>
+  <li>Secure anonymous station chat, hidden until the listener clicks Chat (can be disabled).</li>
   <li>Allows one vote per listener per song.</li>
   <li>Lets a listener change their vote.</li>
   <li>Shows a ratings list for tracks.</li>
   <li>Stores votes locally in <code>./data/votes.sqlite</code>.</li>
   <li>Can optionally add highly rated tracks to a high-rotation playlist and low-rated tracks to a low-rotation/excluded playlist.</li>
-  <li>Secure anonymous chat (can be disabled)</li>
   <li><b>Secure song info fetching/displaying</b> for external mounted streams (other hosts) via local endpoint. Check out this .gif:</li>
 </ul>
 
